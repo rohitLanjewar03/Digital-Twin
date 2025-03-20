@@ -143,6 +143,67 @@ async function markEmailAsRead(user, emailId) {
     }
 }
 
+async function sendReply(user, emailId, replyContent) {
+    try {
+        const auth = new google.auth.OAuth2(
+            process.env.GOOGLE_CLIENT_ID,
+            process.env.GOOGLE_CLIENT_SECRET,
+            process.env.GOOGLE_REDIRECT_URI
+        );
 
-module.exports = { getUnseenEmails, markEmailAsRead, getEmailById };
+        // Set credentials
+        auth.setCredentials({
+            access_token: user.accessToken,
+            refresh_token: user.refreshToken,
+            expiry_date: user.tokenExpiry,
+        });
 
+        const gmail = google.gmail({ version: "v1", auth });
+
+        // Fetch the original email to get the "From" and "Subject" fields
+        const email = await gmail.users.messages.get({
+            userId: "me",
+            id: emailId,
+            format: "metadata",
+            metadataHeaders: ["From", "Subject"],
+        });
+
+        const from = email.data.payload.headers.find((h) => h.name === "From")?.value;
+        const subject = email.data.payload.headers.find((h) => h.name === "Subject")?.value;
+
+        // Create the reply message
+        const replyMessage = [
+            `From: ${user.email}`, // Explicitly set the "From" address
+            `To: ${from}`,
+            `Subject: Re: ${subject}`,
+            "Content-Type: text/plain; charset=utf-8",
+            "MIME-Version: 1.0", // Add MIME version
+            "",
+            replyContent,
+        ].join("\n");
+
+        // Encode the message in base64
+        const encodedMessage = Buffer.from(replyMessage)
+            .toString("base64")
+            .replace(/\+/g, "-")
+            .replace(/\//g, "_")
+            .replace(/=+$/, "");
+
+        // Send the reply
+        const response = await gmail.users.messages.send({
+            userId: "me",
+            requestBody: {
+                raw: encodedMessage,
+            },
+        });
+
+        console.log("Reply sent successfully:", response.data); // Debugging
+        return true;
+    } catch (error) {
+        console.error("Error sending reply:", error);
+        return false;
+    }
+}
+
+
+module.exports = { getUnseenEmails, markEmailAsRead, getEmailById, sendReply };

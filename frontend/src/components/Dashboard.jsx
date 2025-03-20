@@ -4,9 +4,9 @@ import { useEffect, useState } from "react";
 const Dashboard = () => {
     const { user, loading } = useAuth();
     const [emails, setEmails] = useState([]);
+    const [replyContent, setReplyContent] = useState("");
+    const [replyingTo, setReplyingTo] = useState(null);
 
-
-    // Fetch unseen emails
     useEffect(() => {
         fetch("http://localhost:5000/email/unseen", { credentials: "include" })
             .then((res) => res.json())
@@ -14,39 +14,42 @@ const Dashboard = () => {
             .catch((err) => console.error("Error fetching emails:", err));
     }, []);
 
-    // Mark email as read
     const handleMarkAsRead = async (emailId) => {
-        try {
-            const response = await fetch(`http://localhost:5000/email/mark-as-read/${emailId}`, {
-                method: "POST",
-                credentials: "include",
-            });
-            const data = await response.json();
-    
-            if (response.ok) {
-                // Only remove the email from the state if the backend confirms it's marked as read
-                setEmails(emails.filter((email) => email.id !== emailId));
-            } else {
-                console.error("Failed to mark email as read:", data.message);
-            }
-        } catch (error) {
-            console.error("Error marking email as read:", error);
-        }
+        await fetch(`http://localhost:5000/email/mark-as-read/${emailId}`, {
+            method: "POST",
+            credentials: "include",
+        });
+        setEmails(emails.filter((email) => email.id !== emailId));
     };
 
-    // Generate a reply
-    const handleGenerateReply = async (emailId, tone = "professional") => {
+    const handleReplyClick = (emailId) => {
+        setReplyingTo(emailId);
+    };
+
+    const handleSendReply = async () => {
+        if (!replyingTo || !replyContent) return;
+
         try {
-            const response = await fetch("http://localhost:5000/email/generate-reply", {
+            const response = await fetch(`http://localhost:5000/email/send-reply/${replyingTo}`, {
                 method: "POST",
                 credentials: "include",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ emailId, tone }),
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ replyContent }),
             });
+
+            if (!response.ok) {
+                throw new Error("Failed to send reply");
+            }
+
             const data = await response.json();
-            alert(`Generated Reply:\n\n${data.reply}`);
+            alert(data.message); // Show success message
+            setReplyingTo(null); // Close the reply form
+            setReplyContent(""); // Clear the reply content
         } catch (error) {
-            console.error("Error generating reply:", error);
+            console.error("Error sending reply:", error);
+            alert("Failed to send reply");
         }
     };
 
@@ -67,9 +70,17 @@ const Dashboard = () => {
                             <strong>Subject:</strong> {email.subject}<br />
                             <strong>Summary:</strong> {email.summary}<br />
                             <button onClick={() => handleMarkAsRead(email.id)}>Mark as Read</button>
-                            <button onClick={() => handleGenerateReply(email.id, "professional")}>
-                                Generate Reply
-                            </button>
+                            <button onClick={() => handleReplyClick(email.id)}>Reply</button>
+                            {replyingTo === email.id && (
+                                <div>
+                                    <textarea
+                                        value={replyContent}
+                                        onChange={(e) => setReplyContent(e.target.value)}
+                                        placeholder="Type your reply here..."
+                                    />
+                                    <button onClick={handleSendReply}>Send Reply</button>
+                                </div>
+                            )}
                         </li>
                     ))
                 )}
