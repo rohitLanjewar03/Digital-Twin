@@ -6,6 +6,7 @@ const Dashboard = () => {
     const [emails, setEmails] = useState([]);
     const [replyContent, setReplyContent] = useState("");
     const [replyingTo, setReplyingTo] = useState(null);
+    const [tone, setTone] = useState("professional"); // Default tone
 
     useEffect(() => {
         fetch("http://localhost:5000/email/unseen", { credentials: "include" })
@@ -24,6 +25,28 @@ const Dashboard = () => {
 
     const handleReplyClick = (emailId) => {
         setReplyingTo(emailId);
+    };
+
+    const handleGenerateReply = async (emailId) => {
+        try {
+            const response = await fetch(`http://localhost:5000/email/generate-reply/${emailId}`, {
+                method: "POST",
+                credentials: "include",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ tone, userName: user.name }), // Send the selected tone
+            });
+
+            if (!response.ok) {
+                throw new Error("Failed to generate reply");
+            }
+
+            const data = await response.json();
+            setReplyContent(data.reply); // Set the generated reply in the textarea
+        } catch (error) {
+            console.error("Error generating reply:", error);
+        }
     };
 
     const handleSendReply = async () => {
@@ -73,6 +96,12 @@ const Dashboard = () => {
                             <button onClick={() => handleReplyClick(email.id)}>Reply</button>
                             {replyingTo === email.id && (
                                 <div>
+                                    <select value={tone} onChange={(e) => setTone(e.target.value)}>
+                                        <option value="professional">Professional</option>
+                                        <option value="casual">Casual</option>
+                                        <option value="friendly">Friendly</option>
+                                    </select>
+                                    <button onClick={() => handleGenerateReply(email.id)}>Generate Reply</button>
                                     <textarea
                                         value={replyContent}
                                         onChange={(e) => setReplyContent(e.target.value)}

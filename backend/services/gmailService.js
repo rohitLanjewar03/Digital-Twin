@@ -165,19 +165,21 @@ async function sendReply(user, emailId, replyContent) {
             userId: "me",
             id: emailId,
             format: "metadata",
-            metadataHeaders: ["From", "Subject"],
+            metadataHeaders: ["From", "Subject","Message-ID"],
         });
 
         const from = email.data.payload.headers.find((h) => h.name === "From")?.value;
         const subject = email.data.payload.headers.find((h) => h.name === "Subject")?.value;
-
+        const messageId = email.data.payload.headers.find((h) => h.name === "Message-ID")?.value;
         // Create the reply message
         const replyMessage = [
-            `From: ${user.email}`, // Explicitly set the "From" address
+            `From: ${user.email}`,
             `To: ${from}`,
-            `Subject: Re: ${subject}`,
+            `Subject: ${subject}`,
+            `In-Reply-To: ${messageId}`, // Reference the original email
+            `References: ${messageId}`, // Reference the original email
             "Content-Type: text/plain; charset=utf-8",
-            "MIME-Version: 1.0", // Add MIME version
+            "MIME-Version: 1.0",
             "",
             replyContent,
         ].join("\n");
