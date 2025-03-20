@@ -3,7 +3,7 @@ const User = require('../models/User');
 
 // Google OAuth2 Authentication
 exports.googleAuth = passport.authenticate('google', {
-    scope: ['profile', 'email', 'https://www.googleapis.com/auth/gmail.readonly', 'https://www.googleapis.com/auth/calendar']
+    scope: ['profile', 'email', 'https://www.googleapis.com/auth/gmail.modify', 'https://www.googleapis.com/auth/calendar']
 });
 
 // Google OAuth2 Callback

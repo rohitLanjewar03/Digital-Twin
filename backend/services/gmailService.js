@@ -71,39 +71,6 @@ async function getUnseenEmails(user) {
     }
 }
 
-async function markEmailAsRead(user, emailId) {
-    try {
-        const auth = new google.auth.OAuth2(
-            process.env.GOOGLE_CLIENT_ID,
-            process.env.GOOGLE_CLIENT_SECRET,
-            process.env.GOOGLE_REDIRECT_URI
-        );
-
-        auth.setCredentials({
-            access_token: user.accessToken,
-            refresh_token: user.refreshToken,
-            expiry_date: user.tokenExpiry,
-        });
-
-        const gmail = google.gmail({ version: "v1", auth });
-
-        // Mark email as read
-        await gmail.users.messages.modify({
-            userId: "me",
-            id: emailId,
-            requestBody: {
-                removeLabelIds: ["UNREAD"],
-            },
-        });
-
-        return true;
-    } catch (error) {
-        console.error("Error marking email as read:", error);
-        return false;
-    }
-}
-
-
 async function getEmailById(user, emailId) {
     try {
         const auth = new google.auth.OAuth2(
@@ -140,6 +107,42 @@ async function getEmailById(user, emailId) {
         throw error;
     }
 }
+
+
+async function markEmailAsRead(user, emailId) {
+    try {
+        const auth = new google.auth.OAuth2(
+            process.env.GOOGLE_CLIENT_ID,
+            process.env.GOOGLE_CLIENT_SECRET,
+            process.env.GOOGLE_REDIRECT_URI
+        );
+
+        // Set credentials
+        auth.setCredentials({
+            access_token: user.accessToken,
+            refresh_token: user.refreshToken,
+            expiry_date: user.tokenExpiry,
+        });
+
+        const gmail = google.gmail({ version: "v1", auth });
+
+        // Mark email as read by removing the UNREAD label
+        const response = await gmail.users.messages.modify({
+            userId: "me",
+            id: emailId,
+            requestBody: {
+                removeLabelIds: ["UNREAD"], // Remove the UNREAD label
+            },
+        });
+
+        console.log("Email marked as read:", response.data); // Debugging
+        return true;
+    } catch (error) {
+        console.error("Error marking email as read:", error);
+        return false;
+    }
+}
+
 
 module.exports = { getUnseenEmails, markEmailAsRead, getEmailById };
 
