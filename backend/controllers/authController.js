@@ -9,15 +9,22 @@ exports.googleAuth = passport.authenticate('google', {
 // Google OAuth2 Callback
 exports.googleAuthCallback = passport.authenticate('google', { failureRedirect: '/' });
 
-// Handle Google Callback
 exports.handleGoogleCallback = async (req, res) => {
     if (!req.user) {
         return res.status(401).json({ error: 'User not authenticated' });
     }
 
     try {
-        // Save user in session
-        req.session.user = req.user;
+        req.session.user = {
+            _id: req.user._id,
+            googleId: req.user.googleId,
+            name: req.user.name,
+            email: req.user.email,
+            accessToken: req.user.accessToken,
+            refreshToken: req.user.refreshToken, 
+            tokenExpiry: req.user.tokenExpiry, 
+        };
+
         res.redirect('http://localhost:5173/dashboard');
     } catch (error) {
         console.error('Error handling Google callback:', error);
