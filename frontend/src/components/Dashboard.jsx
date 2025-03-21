@@ -49,6 +49,25 @@ const Dashboard = () => {
         }
     };
 
+    const handleAddEvent = async (emailId) => {
+        try {
+            const response = await fetch(`http://localhost:5000/email/add-event/${emailId}`, {
+                method: "POST",
+                credentials: "include",
+            });
+    
+            if (!response.ok) {
+                throw new Error("Failed to add event to Google Calendar");
+            }
+    
+            const data = await response.json();
+            alert(data.message); // Show success message
+        } catch (error) {
+            console.error("Error adding event to Google Calendar:", error);
+            alert("Failed to add event to Google Calendar");
+        }
+    };
+
     const handleSendReply = async () => {
         if (!replyingTo || !replyContent) return;
 
@@ -102,6 +121,7 @@ const Dashboard = () => {
                                         <option value="friendly">Friendly</option>
                                     </select>
                                     <button onClick={() => handleGenerateReply(email.id)}>Generate Reply</button>
+                                    <button onClick={() => handleAddEvent(email.id)}>Add Event to Calendar</button>
                                     <textarea
                                         value={replyContent}
                                         onChange={(e) => setReplyContent(e.target.value)}
@@ -111,7 +131,7 @@ const Dashboard = () => {
                                 </div>
                             )}
                         </li>
-                    ))
+                    )) 
                 )}
             </ul>
         </div>

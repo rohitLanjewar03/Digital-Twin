@@ -1,7 +1,7 @@
 const express = require("express");
 const { fetchUnseenEmails } = require("../controllers/emailController");
 const { markEmailAsRead, sendReply, getEmailById } = require("../services/gmailService");
-const { generateReply } = require("../services/geminiService");
+const { generateReply, extractEventDetails } = require("../services/geminiService");
 
 
 const router = express.Router();
@@ -72,5 +72,29 @@ router.post("/send-reply/:emailId", async (req, res) => {
     }
 });
 
+router.post("/add-event/:emailId", async (req, res) => {
+    try {
+        const { emailId } = req.params;
+        const user = req.session.user;
+
+        if (!user) {
+            return res.status(401).json({ message: "Not authenticated" });
+        }
+
+        // Fetch the email content
+        const email = await getEmailById(user, emailId);
+
+        // Extract event details
+        const eventDetails = await extractEventDetails(email.body);
+
+        // Add the event to Google Calendar
+        const event = await addEventToCalendar(user, eventDetails);
+
+        res.json({ message: "Event added to Google Calendar", event });
+    } catch (error) {
+        console.error("Error adding event to Google Calendar:", error);
+        res.status(500).json({ message: "Error adding event to Google Calendar" });
+    }
+});
 
 module.exports = router;

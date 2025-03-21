@@ -208,4 +208,51 @@ async function sendReply(user, emailId, replyContent) {
 }
 
 
-module.exports = { getUnseenEmails, markEmailAsRead, getEmailById, sendReply };
+async function addEventToCalendar(user, eventDetails) {
+    try {
+        const auth = new google.auth.OAuth2(
+            process.env.GOOGLE_CLIENT_ID,
+            process.env.GOOGLE_CLIENT_SECRET,
+            process.env.GOOGLE_REDIRECT_URI
+        );
+
+        // Set credentials
+        auth.setCredentials({
+            access_token: user.accessToken,
+            refresh_token: user.refreshToken,
+            expiry_date: user.tokenExpiry,
+        });
+
+        const calendar = google.calendar({ version: "v3", auth });
+
+        // Create the event
+        const event = {
+            summary: eventDetails.title,
+            location: eventDetails.location,
+            description: "Event extracted from email",
+            start: {
+                dateTime: `${eventDetails.date}T${eventDetails.time}:00`, // Combine date and time
+                timeZone: "UTC", // Use the appropriate time zone
+            },
+            end: {
+                dateTime: `${eventDetails.date}T${eventDetails.time}:00`, // Same as start time for simplicity
+                timeZone: "UTC",
+            },
+        };
+
+        const response = await calendar.events.insert({
+            calendarId: "primary", // Use the primary calendar
+            resource: event,
+        });
+
+        console.log("Event added to Google Calendar:", response.data); // Debugging
+        return response.data;
+    } catch (error) {
+        console.error("Error adding event to Google Calendar:", error);
+        throw error;
+    }
+}
+
+module.exports = { getUnseenEmails, markEmailAsRead, sendReply, getEmailById, addEventToCalendar };
+
+

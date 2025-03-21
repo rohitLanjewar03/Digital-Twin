@@ -36,5 +36,39 @@ async function generateReply(content, tone = "professional", userName) {
     }
 }
 
+async function extractEventDetails(content) {
+    try {
+        const model = genAI.getGenerativeModel({ model: "gemini-1.0-pro" });
 
-module.exports = { summarizeEmail, generateReply };
+        // Prompt to extract event details
+        const prompt = `Extract event details from the following email content. Provide the details in JSON format with the following keys: title, date, time, location. If any detail is missing, set its value to null:\n\n${content}`;
+        console.log("Sending prompt to Gemini API:", prompt); // Debugging
+
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
+        const jsonResponse = response.text();
+
+        // Extract JSON from Markdown response
+        const jsonMatch = jsonResponse.match(/```json\n([\s\S]*?)\n```/);
+        if (!jsonMatch) {
+            throw new Error("Failed to extract JSON from Gemini API response");
+        }
+
+        const jsonString = jsonMatch[1].trim(); // Extract the JSON content
+
+        // Parse the JSON
+        const eventDetails = JSON.parse(jsonString);
+
+        // Validate the extracted event details
+        if (!eventDetails.title || !eventDetails.date || !eventDetails.time || !eventDetails.location) {
+            throw new Error("Invalid event details extracted from email");
+        }
+
+        console.log("Extracted Event Details:", eventDetails); // Debugging
+        return eventDetails;
+    } catch (error) {
+        console.error("Error extracting event details:", error);
+        throw error;
+    }
+}
+module.exports = { summarizeEmail, generateReply, extractEventDetails };

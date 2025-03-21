@@ -6,6 +6,12 @@ passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
     callbackURL: "http://localhost:5000/auth/google/callback",
+    scope: [
+        "profile",
+        "email",
+        "https://www.googleapis.com/auth/gmail.modify",
+        "https://www.googleapis.com/auth/calendar", // Add this scope
+    ],
     passReqToCallback: true, // Add this to access `req` in the callback
 }, async (req, accessToken, refreshToken, profile, done) => {
     try {
