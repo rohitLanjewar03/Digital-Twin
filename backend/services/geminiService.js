@@ -53,7 +53,10 @@ async function extractEventDetails(content) {
         // Try to parse the JSON response directly
         let eventDetails;
         try {
-            eventDetails = JSON.parse(jsonResponse);
+            // Remove Markdown code block formatting if present
+            const jsonMatch = jsonResponse.match(/```json\n([\s\S]*?)\n```/);
+            const jsonString = jsonMatch ? jsonMatch[1].trim() : jsonResponse.trim();
+            eventDetails = JSON.parse(jsonString);
         } catch (parseError) {
             console.error("Failed to parse JSON response:", parseError);
             throw new Error("Invalid JSON response from Gemini API");
@@ -78,4 +81,5 @@ async function extractEventDetails(content) {
         throw new Error("Invalid event details extracted from email");
     }
 }
+
 module.exports = { summarizeEmail, generateReply, extractEventDetails };
