@@ -38,7 +38,7 @@ async function generateReply(content, tone = "professional", userName) {
 
 async function extractEventDetails(content) {
     try {
-        const model = genAI.getGenerativeModel({ model: "gemini-1.0-pro" });
+        const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
         // Prompt to extract event details
         const prompt = `Extract event details from the following email content. Provide the details in JSON format with the following keys: title, date, time, location. If any detail is missing, set its value to null:\n\n${content}`;
@@ -48,27 +48,34 @@ async function extractEventDetails(content) {
         const response = await result.response;
         const jsonResponse = response.text();
 
-        // Extract JSON from Markdown response
-        const jsonMatch = jsonResponse.match(/```json\n([\s\S]*?)\n```/);
-        if (!jsonMatch) {
-            throw new Error("Failed to extract JSON from Gemini API response");
+        console.log("Raw Gemini API Response:", jsonResponse); // Debugging
+
+        // Try to parse the JSON response directly
+        let eventDetails;
+        try {
+            eventDetails = JSON.parse(jsonResponse);
+        } catch (parseError) {
+            console.error("Failed to parse JSON response:", parseError);
+            throw new Error("Invalid JSON response from Gemini API");
         }
 
-        const jsonString = jsonMatch[1].trim(); // Extract the JSON content
-
-        // Parse the JSON
-        const eventDetails = JSON.parse(jsonString);
-
-        // Validate the extracted event details
-        if (!eventDetails.title || !eventDetails.date || !eventDetails.time || !eventDetails.location) {
-            throw new Error("Invalid event details extracted from email");
+        // Validate and set default values for missing fields
+        if (!eventDetails) {
+            throw new Error("No event details extracted from email");
         }
 
-        console.log("Extracted Event Details:", eventDetails); // Debugging
-        return eventDetails;
+        const validatedDetails = {
+            title: eventDetails.title || null,
+            date: eventDetails.date || null,
+            time: eventDetails.time || null,
+            location: eventDetails.location || null,
+        };
+
+        console.log("Extracted Event Details:", validatedDetails); // Debugging
+        return validatedDetails;
     } catch (error) {
         console.error("Error extracting event details:", error);
-        throw error;
+        throw new Error("Invalid event details extracted from email");
     }
 }
 module.exports = { summarizeEmail, generateReply, extractEventDetails };
