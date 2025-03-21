@@ -1,12 +1,27 @@
 require('dotenv').config();
 const { GoogleGenerativeAI } = require("@google/generative-ai");
+const { google } = require("googleapis");
 
+// Initialize Gemini AI
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+
+// Initialize Google Calendar OAuth2 client
+const oauth2Client = new google.auth.OAuth2(
+    process.env.GOOGLE_CLIENT_ID,
+    process.env.GOOGLE_CLIENT_SECRET,
+    process.env.GOOGLE_REDIRECT_URI
+);
+
+// Set Google Calendar API credentials
+oauth2Client.setCredentials({
+    access_token: process.env.GOOGLE_ACCESS_TOKEN,
+    refresh_token: process.env.GOOGLE_REFRESH_TOKEN,
+});
 
 // Function to summarize email content
 async function summarizeEmail(content) {
     try {
-        const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash"});
+        const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
         const prompt = `Summarize the following email content in 2-3 sentences:\n\n${content}`;
         const result = await model.generateContent(prompt);
         const response = await result.response;
@@ -36,6 +51,7 @@ async function generateReply(content, tone = "professional", userName) {
     }
 }
 
+// Function to extract event details from email content
 async function extractEventDetails(content) {
     try {
         const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
@@ -82,4 +98,51 @@ async function extractEventDetails(content) {
     }
 }
 
-module.exports = { summarizeEmail, generateReply, extractEventDetails };
+// Function to add an event to Google Calendar
+async function addEventToGoogleCalendar(user, eventDetails) {
+    try {
+        // Initialize OAuth2 client with user-specific credentials
+        const oauth2Client = new google.auth.OAuth2(
+            process.env.GOOGLE_CLIENT_ID,
+            process.env.GOOGLE_CLIENT_SECRET,
+            process.env.GOOGLE_REDIRECT_URI
+        );
+
+        // Set user-specific credentials
+        oauth2Client.setCredentials({
+            access_token: user.googleAccessToken,
+            refresh_token: user.googleRefreshToken,
+        });
+
+        const calendar = google.calendar({ version: "v3", auth: oauth2Client });
+
+        const event = {
+            summary: eventDetails.title || "Event",
+            location: eventDetails.location || null,
+            description: "Event created via Digital Twin App",
+            start: {
+                dateTime: `${eventDetails.date}T${eventDetails.time}:00`,
+                timeZone: "UTC", // Use user's time zone if available
+            },
+            end: {
+                dateTime: `${eventDetails.date}T${eventDetails.time}:00`,
+                timeZone: "UTC", // Use user's time zone if available
+            },
+        };
+
+        console.log("Event to be added:", event); // Debugging
+
+        const response = await calendar.events.insert({
+            calendarId: "primary",
+            resource: event,
+        });
+
+        console.log("Google Calendar Response:", response.data); // Debugging
+        return response.data;
+    } catch (error) {
+        console.error("Error adding event to Google Calendar:", error);
+        throw new Error("Failed to add event to Google Calendar");
+    }
+}
+// Export all functions
+module.exports = { summarizeEmail, generateReply, extractEventDetails, addEventToGoogleCalendar };

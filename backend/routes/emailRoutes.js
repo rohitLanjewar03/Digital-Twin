@@ -1,7 +1,7 @@
 const express = require("express");
 const { fetchUnseenEmails } = require("../controllers/emailController");
 const { markEmailAsRead, sendReply, getEmailById } = require("../services/gmailService");
-const { generateReply, extractEventDetails } = require("../services/geminiService");
+const { generateReply, extractEventDetails, addEventToGoogleCalendar } = require("../services/geminiService");
 
 
 const router = express.Router();
@@ -88,7 +88,7 @@ router.post("/add-event/:emailId", async (req, res) => {
         const eventDetails = await extractEventDetails(email.body);
 
         // Add the event to Google Calendar
-        const event = await addEventToCalendar(user, eventDetails);
+        const event = await addEventToGoogleCalendar(user, eventDetails);
 
         res.json({ message: "Event added to Google Calendar", event });
     } catch (error) {
