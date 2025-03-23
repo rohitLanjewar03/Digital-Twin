@@ -10,7 +10,7 @@ passport.use(new GoogleStrategy({
         "profile",
         "email",
         "https://www.googleapis.com/auth/gmail.modify",
-        "https://www.googleapis.com/auth/calendar", // Add this scope
+        "https://www.googleapis.com/auth/calendar",
     ],
     passReqToCallback: true, // Add this to access `req` in the callback
 }, async (req, accessToken, refreshToken, profile, done) => {

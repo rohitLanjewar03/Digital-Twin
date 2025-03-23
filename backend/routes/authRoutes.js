@@ -1,17 +1,19 @@
 const express = require('express');
-const { googleAuth, googleAuthCallback, handleGoogleCallback, logout, getUserProfile } = require('../controllers/authController');
+const { googleAuth, googleAuthCallback, handleGoogleCallback, logout, getUserProfile, refreshSession, validateSession } = require('../controllers/authController');
+const { isAuthenticated } = require('../middleware/authMiddleware');
 
 const router = express.Router();
 
-// Google OAuth2 Routes
+// Public routes
 router.get('/google', googleAuth);
 router.get('/google/callback', googleAuthCallback, handleGoogleCallback);
-// Get User Profile Route
-router.get('/me', getUserProfile);
 
-// Logout Route
-router.get('/logout', logout);
+// Session validation route
+router.get('/validate-session', validateSession);
 
-
+// Protected routes
+router.get('/me', isAuthenticated, getUserProfile);
+router.get('/refresh', isAuthenticated, refreshSession);
+router.get('/logout', isAuthenticated, logout);
 
 module.exports = router;

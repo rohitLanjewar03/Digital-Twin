@@ -1,10 +1,13 @@
 const express = require("express");
 const { fetchUnseenEmails } = require("../controllers/emailController");
-const { markEmailAsRead, sendReply, getEmailById } = require("../services/gmailService");
-const { generateReply, extractEventDetails, addEventToGoogleCalendar } = require("../services/geminiService");
-
+const { markEmailAsRead, sendReply, getEmailById, addEventToCalendar } = require("../services/gmailService");
+const { generateReply, extractEventDetails } = require("../services/geminiService");
+const { isAuthenticated } = require("../middleware/authMiddleware");
 
 const router = express.Router();
+
+// Apply isAuthenticated middleware to all email routes
+router.use(isAuthenticated);
 
 router.get("/unseen", fetchUnseenEmails);
 
@@ -20,12 +23,32 @@ router.post("/generate-reply/:emailId", async (req, res) => {
 
         // Fetch the email content
         const email = await getEmailById(user, emailId);
-        const reply = await generateReply(email.body, tone, userName); // Pass the user's name
+        
+        if (!email || !email.body) {
+            return res.status(404).json({ 
+                message: "Email content could not be retrieved",
+                reply: `I received your email, but couldn't access the content properly. Please let me know how I can assist you.\n\nBest regards,\n${userName}`
+            });
+        }
+        
+        // Generate reply with enhanced context
+        const enhancedContext = `
+        FROM: ${email.from}
+        SUBJECT: ${email.subject}
+        
+        EMAIL CONTENT:
+        ${email.body}
+        `;
+        
+        const reply = await generateReply(enhancedContext, tone, userName);
 
         res.json({ reply });
     } catch (error) {
         console.error("Error generating reply:", error);
-        res.status(500).json({ message: "Error generating reply" });
+        res.status(500).json({ 
+            message: "Error generating reply",
+            reply: `Thank you for your email. I've received your message and will review it properly soon.\n\nBest regards,\n${req.body.userName || "Me"}`
+        });
     }
 });
 
@@ -72,28 +95,47 @@ router.post("/send-reply/:emailId", async (req, res) => {
     }
 });
 
-router.post("/add-event/:emailId", async (req, res) => {
+// Add event to calendar
+router.post("/add-to-calendar/:emailId", async (req, res) => {
     try {
         const { emailId } = req.params;
         const user = req.session.user;
 
-        if (!user) {
-            return res.status(401).json({ message: "Not authenticated" });
-        }
-
         // Fetch the email content
         const email = await getEmailById(user, emailId);
-
-        // Extract event details
-        const eventDetails = await extractEventDetails(email.body);
-
-        // Add the event to Google Calendar
-        const event = await addEventToGoogleCalendar(user, eventDetails);
-
-        res.json({ message: "Event added to Google Calendar", event });
+        
+        if (!email || !email.body) {
+            return res.status(404).json({ 
+                message: "Email content could not be retrieved",
+                success: false
+            });
+        }
+        
+        // Extract event details from the email
+        const eventDetails = await extractEventDetails(email.body, email.subject);
+        
+        if (!eventDetails || !eventDetails.title) {
+            return res.json({ 
+                noEventFound: true,
+                success: false,
+                message: "No event details found in this email"
+            });
+        }
+        
+        // Add the event to the calendar
+        const result = await addEventToCalendar(user, eventDetails);
+        
+        res.json({
+            success: true,
+            message: "Event added to calendar",
+            eventDetails: result
+        });
     } catch (error) {
-        console.error("Error adding event to Google Calendar:", error);
-        res.status(500).json({ message: "Error adding event to Google Calendar" });
+        console.error("Error adding event to calendar:", error);
+        res.status(500).json({ 
+            message: "Error adding event to calendar",
+            success: false
+        });
     }
 });
 
