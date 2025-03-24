@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Welcome to Email Assistant History Connector</title>
+  <meta charset="utf-8">
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f9f9f9;
+      color: #333;
+      line-height: 1.6;
+    }
+    
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 40px 20px;
+    }
+    
+    h1 {
+      font-size: 28px;
+      margin-bottom: 20px;
+      color: #2c3e50;
+      text-align: center;
+    }
+    
+    h2 {
+      font-size: 22px;
+      margin-top: 30px;
+      margin-bottom: 15px;
+      color: #34495e;
+    }
+    
+    p {
+      margin-bottom: 15px;
+      font-size: 16px;
+    }
+    
+    .step {
+      background-color: white;
+      padding: 20px;
+      margin-bottom: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    }
+    
+    .step-number {
+      display: inline-block;
+      background-color: #3498db;
+      color: white;
+      width: 30px;
+      height: 30px;
+      text-align: center;
+      line-height: 30px;
+      border-radius: 50%;
+      margin-right: 10px;
+      font-weight: bold;
+    }
+    
+    .privacy-notice {
+      background-color: #ecf0f1;
+      padding: 20px;
+      border-radius: 8px;
+      margin-top: 30px;
+    }
+    
+    .cta-button {
+      display: block;
+      width: 200px;
+      margin: 30px auto;
+      padding: 12px 0;
+      background-color: #3498db;
+      color: white;
+      text-align: center;
+      border-radius: 6px;
+      text-decoration: none;
+      font-weight: bold;
+      transition: background-color 0.2s;
+    }
+    
+    .cta-button:hover {
+      background-color: #2980b9;
+    }
+    
+    .screenshot {
+      max-width: 100%;
+      height: auto;
+      display: block;
+      margin: 20px auto;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Welcome to Email Assistant History Connector!</h1>
+    
+    <p>This extension connects your browsing history to your Email Assistant application to provide context-aware email suggestions and better responses. Here's how to get started:</p>
+    
+    <div class="step">
+      <h2><span class="step-number">1</span> Find Your User ID</h2>
+      <p>Open your Email Assistant application and go to your profile settings. You'll find your User ID displayed there. Copy this ID as you'll need it to connect the extension.</p>
+      <!-- Placeholder for screenshot -->
+      <p><em>Note: Your User ID is a unique identifier that helps the extension associate your browsing data with your Email Assistant account.</em></p>
+    </div>
+    
+    <div class="step">
+      <h2><span class="step-number">2</span> Connect the Extension</h2>
+      <p>Click on the extension icon in your browser toolbar, paste your User ID into the field, and click "Connect to Email Assistant".</p>
+      <!-- Placeholder for screenshot -->
+      <p>Once connected, you'll see a green indicator showing that the extension is successfully linked to your account.</p>
+    </div>
+    
+    <div class="step">
+      <h2><span class="step-number">3</span> Sync Your History</h2>
+      <p>Choose a time range and click "Sync Browsing History" to send relevant browsing data to your Email Assistant.</p>
+      <p>This will help the assistant provide more contextually relevant responses and suggestions for your emails.</p>
+    </div>
+    
+    <a href="#" class="cta-button" id="openExtension">Open Extension</a>
+    
+    <div class="privacy-notice">
+      <h2>Privacy Commitment</h2>
+      <p>Your privacy is our priority. Here's how we protect your data:</p>
+      <ul>
+        <li>History data is only sent when you explicitly click "Sync"</li>
+        <li>Sensitive sites (banking, health, adult content) are automatically filtered out</li>
+        <li>Your data is only used to improve email suggestions, never for advertising</li>
+        <li>All communication between the extension and Email Assistant is encrypted</li>
+        <li>You can disconnect or clear synced data at any time</li>
+      </ul>
+    </div>
+  </div>
+  
+  <script src="onboarding.js"></script>
+</body>
+</html> 

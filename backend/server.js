@@ -10,6 +10,9 @@ require('./config/googleAuth');
 const authRoutes = require('./routes/authRoutes');
 const emailRoutes = require('./routes/emailRoutes');
 const agentRoutes = require('./routes/agentRoutes');
+const searchRoutes = require('./routes/searchRoutes');
+const historyRoutes = require('./routes/historyRoutes');
+const newsRoutes = require('./routes/newsRoutes');
 
 const app = express();
 app.use(cors({ origin: "http://localhost:5173", credentials: true }));
@@ -31,6 +34,9 @@ mongoose.connect(process.env.MONGO_URI)
 app.use('/auth', authRoutes);
 app.use('/email', emailRoutes);
 app.use('/agent', agentRoutes);
+app.use('/search', searchRoutes);
+app.use('/history', historyRoutes);
+app.use('/news', newsRoutes);
 
 const PORT = process.env.PORT;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

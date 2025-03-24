@@ -20,7 +20,7 @@ export const AuthProvider = ({ children }) => {
             // Always clear localStorage and state regardless of server response
             localStorage.removeItem("user");
             setUser(null);
-            navigate("/");
+            navigate("/login");
         }
     };
 
@@ -60,7 +60,7 @@ export const AuthProvider = ({ children }) => {
                     const isValid = await validateSession();
                     if (!isValid) {
                         // If session is invalid, redirect to login
-                        navigate("/");
+                        navigate("/login");
                     }
                 } catch (e) {
                     console.error("Error parsing stored user:", e);

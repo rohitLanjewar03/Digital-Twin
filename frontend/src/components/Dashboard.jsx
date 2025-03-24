@@ -1,11 +1,12 @@
 import { useAuth } from "../context/useAuth";
-import { useEffect, useState, useCallback, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState, useRef } from "react";
+import { useNavigate, Link } from "react-router-dom";
 import AIAgent from "./AIAgent";
 
 const Dashboard = () => {
     const { user, loading, logout, validateSession } = useAuth();
     const [emails, setEmails] = useState([]);
+    const [filteredEmails, setFilteredEmails] = useState([]);
     const [replyContent, setReplyContent] = useState("");
     const [replyingTo, setReplyingTo] = useState(null);
     const [tone, setTone] = useState("professional"); // Default tone
@@ -15,50 +16,115 @@ const Dashboard = () => {
     const [refreshing, setRefreshing] = useState(false);
     const [lastRefresh, setLastRefresh] = useState(null);
     const refreshIntervalRef = useRef(null);
+    const [searchQuery, setSearchQuery] = useState("");
     const navigate = useNavigate();
+    const [newsArticles, setNewsArticles] = useState([]);
+    const [showNews, setShowNews] = useState(false);
+    const [newsLoading, setNewsLoading] = useState(false);
+    const [newsError, setNewsError] = useState(null);
+    const NEWS_API_KEY = import.meta.env.VITE_NEWS_API_KEY;
+    const searchInputRef = useRef(null);
+
+    // Function to fetch emails
+    const fetchData = async () => {
+        setIsLoading(true);
+        setError(null);
+
+        try {
+            // Validate session first
+            const isValid = await validateSession();
+            if (!isValid) {
+                // If session is invalid, navigate to login
+                navigate("/");
+                return;
+            }
+
+            // Fetch emails
+            const response = await fetch("http://localhost:5000/email/unseen", { 
+                credentials: "include" 
+            });
+
+            if (response.status === 401) {
+                // If unauthorized, logout
+                logout();
+                return;
+            }
+
+            if (!response.ok) {
+                throw new Error(`Error: ${response.status} ${response.statusText}`);
+            }
+
+            const data = await response.json();
+            setEmails(data);
+            // Also update filtered emails
+            if (searchQuery.trim() === "") {
+                setFilteredEmails(data);
+            }
+            
+            // Update last refresh time
+            setLastRefresh(new Date());
+        } catch (err) {
+            console.error("Error fetching emails:", err);
+            setError("Failed to load emails. Please try again later.");
+        } finally {
+            setIsLoading(false);
+            setRefreshing(false);
+        }
+    };
+
+    // Function to fetch news based on search query
+    const fetchNews = async (query) => {
+        if (!query) return;
+        
+        setNewsLoading(true);
+        setNewsError(null);
+        
+        try {
+            // Get today's date and format it
+            const today = new Date();
+            const formattedDate = today.toISOString().split('T')[0];
+            
+            // Use the News API to fetch articles related to the search query
+            const response = await fetch(
+                `https://newsapi.org/v2/everything?q=${encodeURIComponent(query)}&from=${formattedDate}&sortBy=popularity&apiKey=${NEWS_API_KEY}`
+            );
+            
+            if (!response.ok) {
+                throw new Error(`News API Error: ${response.status} ${response.statusText}`);
+            }
+            
+            const data = await response.json();
+            
+            if (data.status === 'ok' && data.articles && data.articles.length > 0) {
+                // Limit to top 5 articles
+                setNewsArticles(data.articles.slice(0, 5));
+                setShowNews(true);
+            } else {
+                setNewsArticles([]);
+                setNewsError("No news articles found for this search query.");
+            }
+        } catch (err) {
+            console.error("Error fetching news:", err);
+            setNewsError(`Failed to load news: ${err.message}`);
+        } finally {
+            setNewsLoading(false);
+        }
+    };
 
     useEffect(() => {
-        async function fetchData() {
-            if (!user) return;
-
-            setIsLoading(true);
-            setError(null);
-
-            try {
-                // Validate session first
-                const isValid = await validateSession();
-                if (!isValid) {
-                    // If session is invalid, navigate to login
-                    navigate("/");
-                    return;
-                }
-
-                // Fetch emails
-                const response = await fetch("http://localhost:5000/email/unseen", { 
-                    credentials: "include" 
-                });
-
-                if (response.status === 401) {
-                    // If unauthorized, logout
-                    logout();
-                    return;
-                }
-
-                if (!response.ok) {
-                    throw new Error(`Error: ${response.status} ${response.statusText}`);
-                }
-
-                const data = await response.json();
-                setEmails(data);
-            } catch (err) {
-                console.error("Error fetching emails:", err);
-                setError("Failed to load emails. Please try again later.");
-            } finally {
-                setIsLoading(false);
-            }
-        }
-
         fetchData();
+        
+        // Start refresh interval
+        refreshIntervalRef.current = setInterval(() => {
+            fetchData();
+        }, 30000); // Refresh every 30 seconds
+        
+        // Cleanup interval on unmount
+        return () => {
+            if (refreshIntervalRef.current) {
+                clearInterval(refreshIntervalRef.current);
+            }
+        };
     }, [user, navigate, logout, validateSession]);
 
     // Function to check if an email is from a no-reply address
@@ -238,283 +304,266 @@ const Dashboard = () => {
         }
     };
 
-    // Function to fetch emails
-    const fetchEmails = useCallback(async () => {
-        if (!user) return;
+    // Handler for search input changes
+    const handleSearchChange = (e) => {
+        setSearchQuery(e.target.value);
         
-        try {
-            setRefreshing(true);
-            const response = await fetch("http://localhost:5000/email/unseen", { 
-                credentials: "include" 
-            });
-            
-            if (!response.ok) {
-                if (response.status === 401) {
-                    // If unauthorized, logout
-                    logout();
-                    return;
-                }
-                throw new Error(`Error: ${response.status}`);
-            }
-            
-            const newEmails = await response.json();
-            
-            // Check if we have new emails
-            if (newEmails.length > emails.length) {
-                // If there are more emails than before, check for unique new ones
-                const currentIds = emails.map(email => email.id);
-                const actualNewEmails = newEmails.filter(email => !currentIds.includes(email.id));
-                
-                if (actualNewEmails.length > 0) {
-                    // We have new emails!
-                    showNotification(actualNewEmails.length);
-                    
-                    // Update email list, merging both lists and avoiding duplicates
-                    setEmails(prevEmails => {
-                        const allIds = new Set(prevEmails.map(e => e.id));
-                        const uniqueNewEmails = newEmails.filter(e => !allIds.has(e.id));
-                        return [...prevEmails, ...uniqueNewEmails];
-                    });
-                } else {
-                    // Just update the full list as it might have changed
-                    setEmails(newEmails);
-                }
-            } else {
-                // No new emails or fewer emails (some might have been marked as read)
-                setEmails(newEmails);
-            }
-            
-            setLastRefresh(new Date());
-        } catch (error) {
-            console.error("Error fetching emails:", error);
-        } finally {
-            setRefreshing(false);
-        }
-    }, [user, emails.length, logout]);
-
-    // Function to show notification
-    const showNotification = (count) => {
-        // Check if browser supports notifications
-        if (!("Notification" in window)) {
-            return;
-        }
-        
-        // Check if we already have permission
-        if (Notification.permission === "granted") {
-            new Notification(`${count} New Email${count > 1 ? 's' : ''}`, {
-                body: `You have ${count} new unread email${count > 1 ? 's' : ''}`,
-                icon: 'https://ssl.gstatic.com/ui/v1/icons/mail/rfr/gmail.ico'  // Gmail icon
-            });
-        } 
-        // Ask for permission if not already granted
-        else if (Notification.permission !== "denied") {
-            Notification.requestPermission().then(permission => {
-                if (permission === "granted") {
-                    new Notification(`${count} New Email${count > 1 ? 's' : ''}`, {
-                        body: `You have ${count} new unread email${count > 1 ? 's' : ''}`,
-                        icon: 'https://ssl.gstatic.com/ui/v1/icons/mail/rfr/gmail.ico'
-                    });
-                }
-            });
+        // Filter emails as user types
+        if (e.target.value.trim() === "") {
+            setFilteredEmails(emails);
+        } else {
+            const lowercaseQuery = e.target.value.toLowerCase();
+            const filtered = emails.filter(email => 
+                email.subject?.toLowerCase().includes(lowercaseQuery) ||
+                email.from?.toLowerCase().includes(lowercaseQuery) ||
+                email.snippet?.toLowerCase().includes(lowercaseQuery)
+            );
+            setFilteredEmails(filtered);
         }
     };
 
-    // Initial fetch and setup refresh interval
+    // Handler for search submission
+    const handleSearchSubmit = (e) => {
+        e.preventDefault();
+        if (searchQuery.trim()) {
+            // Filter emails
+            const lowercaseQuery = searchQuery.toLowerCase();
+            const filtered = emails.filter(email => 
+                email.subject?.toLowerCase().includes(lowercaseQuery) ||
+                email.from?.toLowerCase().includes(lowercaseQuery) ||
+                email.snippet?.toLowerCase().includes(lowercaseQuery)
+            );
+            setFilteredEmails(filtered);
+            
+            // Fetch news related to the search query
+            fetchNews(searchQuery);
+        } else {
+            setFilteredEmails(emails);
+            setShowNews(false);
+        }
+    };
+
+    // Toggle news display
+    const toggleNews = () => {
+        setShowNews(!showNews);
+    };
+
+    // Update email filtering when emails change
     useEffect(() => {
-        if (user) {
-            fetchEmails();
-            
-            // Set up interval to check for new emails (every 30 seconds)
-            refreshIntervalRef.current = setInterval(() => {
-                fetchEmails();
-            }, 30000); // 30 seconds
-            
-            // Request notification permission on mount
-            if ("Notification" in window && Notification.permission === "default") {
-                Notification.requestPermission();
-            }
+        if (searchQuery.trim() === "") {
+            setFilteredEmails(emails);
+        } else {
+            const lowercaseQuery = searchQuery.toLowerCase();
+            const filtered = emails.filter(email => 
+                email.subject?.toLowerCase().includes(lowercaseQuery) ||
+                email.from?.toLowerCase().includes(lowercaseQuery) ||
+                email.snippet?.toLowerCase().includes(lowercaseQuery)
+            );
+            setFilteredEmails(filtered);
+        }
+    }, [emails, searchQuery]);
+
+    // Render news articles section
+    const renderNewsArticles = () => {
+        if (newsLoading) {
+            return <div className="news-loading">Loading related news...</div>;
         }
         
-        // Cleanup: clear interval when component unmounts
-        return () => {
-            if (refreshIntervalRef.current) {
-                clearInterval(refreshIntervalRef.current);
-            }
-        };
-    }, [user, fetchEmails]);
+        if (newsError) {
+            return <div className="news-error">{newsError}</div>;
+        }
+        
+        if (newsArticles.length === 0) {
+            return <div className="no-news">No related news articles found.</div>;
+        }
+        
+        return (
+            <div className="news-articles">
+                <h3>Related News for "{searchQuery}"</h3>
+                <ul className="news-list">
+                    {newsArticles.map((article, index) => (
+                        <li key={index} className="news-item">
+                            {article.urlToImage && (
+                                <img 
+                                    src={article.urlToImage} 
+                                    alt={article.title} 
+                                    className="news-image"
+                                />
+                            )}
+                            <div className="news-content">
+                                <h4 className="news-title">
+                                    <a href={article.url} target="_blank" rel="noopener noreferrer">
+                                        {article.title}
+                                    </a>
+                                </h4>
+                                <p className="news-description">{article.description}</p>
+                                <div className="news-meta">
+                                    <span className="news-source">{article.source.name}</span>
+                                    <span className="news-date">
+                                        {new Date(article.publishedAt).toLocaleDateString()}
+                                    </span>
+                                </div>
+                            </div>
+                        </li>
+                    ))}
+                </ul>
+            </div>
+        );
+    };
 
     if (loading) return <p>Loading...</p>;
     if (!user) return <p>Please log in to view the dashboard.</p>;
 
     return (
-        <div>
-            <div className="header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-            <h2>Welcome, {user.name}!</h2>
-                <button 
-                    onClick={logout}
-                    style={{ 
-                        backgroundColor: '#f44336', 
-                        color: 'white', 
-                        padding: '8px 16px', 
-                        border: 'none', 
-                        borderRadius: '4px', 
-                        cursor: 'pointer' 
-                    }}
-                >
-                    Logout
-                </button>
-            </div>
-
-            {/* AI Agent Section */}
-            <AIAgent />
-            
-            <div style={{ 
-                display: 'flex', 
-                justifyContent: 'space-between', 
-                alignItems: 'center',
-                marginTop: '30px',
-                marginBottom: '10px'
-            }}>
-                <h3 style={{ margin: 0 }}>Unseen Emails</h3>
-                <div style={{ display: 'flex', alignItems: 'center' }}>
-                    {lastRefresh && (
-                        <span style={{ fontSize: '0.8rem', color: '#666', marginRight: '10px' }}>
-                            Last updated: {lastRefresh.toLocaleTimeString()}
-                        </span>
-                    )}
-                    <button 
-                        onClick={fetchEmails} 
-                        disabled={refreshing}
-                        style={{
-                            backgroundColor: '#f1f1f1',
-                            border: 'none',
-                            borderRadius: '4px',
-                            padding: '5px 10px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            cursor: refreshing ? 'not-allowed' : 'pointer',
-                            opacity: refreshing ? 0.7 : 1
-                        }}
-                    >
-                        {refreshing ? (
-                            <>
-                                <span className="refresh-icon" style={{
-                                    display: 'inline-block',
-                                    width: '16px',
-                                    height: '16px',
-                                    borderRadius: '50%',
-                                    border: '2px solid #ccc',
-                                    borderTopColor: '#333',
-                                    animation: 'spin 1s linear infinite',
-                                    marginRight: '5px'
-                                }}></span>
-                                Refreshing...
-                            </>
-                        ) : (
-                            'Refresh'
-                        )}
+        <div className="dashboard-container">
+            <header>
+                <h1>Digital Twin Dashboard</h1>
+                <div className="header-buttons">
+                    <Link to="/history" className="history-button">
+                        Browsing History
+                    </Link>
+                    <Link to="/news" className="news-button">
+                        News Feed
+                    </Link>
+                    <button onClick={logout} className="logout-button">
+                        Logout
                     </button>
                 </div>
-            </div>
-
-            <style>
-                {`
-                @keyframes spin {
-                    0% { transform: rotate(0deg); }
-                    100% { transform: rotate(360deg); }
-                }
-                `}
-            </style>
+            </header>
             
-            {error && (
-                <div style={{ 
-                    backgroundColor: '#ffebee', 
-                    color: '#c62828', 
-                    padding: '10px', 
-                    borderRadius: '4px', 
-                    marginBottom: '15px' 
-                }}>
-                    {error}
+            {/* Search bar */}
+            <div className="search-container">
+                <form onSubmit={handleSearchSubmit}>
+                    <input 
+                        type="text"
+                        placeholder="Search emails..."
+                        value={searchQuery}
+                        onChange={handleSearchChange}
+                        className="search-input"
+                        ref={searchInputRef}
+                    />
+                    <button type="submit" className="search-button">Search</button>
+                </form>
+            </div>
+            
+            {/* News Section */}
+            {newsArticles.length > 0 && (
+                <div className="news-container">
+                    <button className="toggle-news-btn" onClick={toggleNews}>
+                        {showNews ? "Hide News" : "Show Related News"}
+                    </button>
+                    {showNews && renderNewsArticles()}
                 </div>
             )}
             
+            {/* AI Agent Section */}
+            <AIAgent />
+            
+            {/* Rest of your component UI */}
+            {error && <div className="error-message">{error}</div>}
+            
             {isLoading ? (
-                <p>Loading emails...</p>
+                <div className="loading">Loading emails...</div>
             ) : (
-            <ul>
-                {emails.length === 0 ? (
-                    <p>No unread emails</p>
-                ) : (
-                    emails.map((email) => (
-                            <li key={email.id} style={{ 
-                                marginBottom: '15px', 
-                                padding: '15px', 
-                                border: '1px solid #ddd',
-                                borderRadius: '4px',
-                                backgroundColor: isNoReplyEmail(email.from) ? 'blue' : 'red'
-                            }}>
-                                <strong>From:</strong> {email.from}
-                                {isNoReplyEmail(email.from) && (
-                                    <span style={{ 
-                                        marginLeft: '10px', 
-                                        backgroundColor: '#ffeb3b', 
-                                        padding: '3px 6px', 
-                                        borderRadius: '3px',
-                                        fontSize: '0.8rem',
-                                        color: '#333'
-                                    }}>
-                                        No-Reply Address
-                                    </span>
-                                )}
-                                <br />
+                <div className="emails-container">
+                    {/* Emails header with refresh button */}
+                    <div className="emails-header">
+                        <h2>Inbox ({filteredEmails.length})</h2>
+                        <div className="refresh-container">
+                            {lastRefresh && (
+                                <span className="last-refresh">
+                                    Last updated: {lastRefresh.toLocaleTimeString()}
+                                </span>
+                            )}
+                            <button 
+                                className={`refresh-button ${refreshing ? 'refreshing' : ''}`}
+                                onClick={() => {
+                                    setRefreshing(true);
+                                    fetchData();
+                                }}
+                            >
+                                Refresh
+                            </button>
+                        </div>
+                    </div>
+                    
+                    {/* Emails list */}
+                    {filteredEmails.length === 0 ? (
+                        <div className="no-emails">
+                            {searchQuery ? "No emails match your search." : "No new emails."}
+                        </div>
+                    ) : (
+                        <div className="emails-list">
+                            {filteredEmails.map((email) => (
+                                <li key={email.id} style={{ 
+                                    marginBottom: '15px', 
+                                    padding: '15px', 
+                                    border: '1px solid #ddd',
+                                    borderRadius: '4px',
+                                    backgroundColor: isNoReplyEmail(email.from) ? 'blue' : 'red'
+                                }}>
+                                    <strong>From:</strong> {email.from}
+                                    {isNoReplyEmail(email.from) && (
+                                        <span style={{ 
+                                            marginLeft: '10px', 
+                                            backgroundColor: '#ffeb3b', 
+                                            padding: '3px 6px', 
+                                            borderRadius: '3px',
+                                            fontSize: '0.8rem',
+                                            color: '#333'
+                                        }}>
+                                            No-Reply Address
+                                        </span>
+                                    )}
+                                    <br />
                             <strong>Subject:</strong> {email.subject}<br />
                             <strong>Summary:</strong> {email.summary}<br />
-                                <div style={{ marginTop: '10px' }}>
-                                    <button 
-                                        onClick={() => handleMarkAsRead(email.id)}
-                                        style={{ marginRight: '5px' }}
-                                    >
-                                        Mark as Read
-                                    </button>
-                                    {!isNoReplyEmail(email.from) ? (
+                                    <div style={{ marginTop: '10px' }}>
                                         <button 
-                                            onClick={() => handleReplyClick(email.id)}
+                                            onClick={() => handleMarkAsRead(email.id)}
                                             style={{ marginRight: '5px' }}
                                         >
-                                            Reply
+                                            Mark as Read
                                         </button>
-                                    ) : (
-                                        <button 
-                                            disabled 
-                                            title="Cannot reply to no-reply addresses"
-                                            style={{ 
-                                                opacity: 0.5, 
-                                                cursor: 'not-allowed',
-                                                marginRight: '5px'
-                                            }}
-                                        >
-                                            Reply
-                                        </button>
-                                    )}
-                                    {/* Only show Add to Calendar button if the email likely contains event info */}
-                                    {likelyContainsEventInfo(email) && (
-                                        <button 
-                                            onClick={() => handleAddToCalendar(email.id)}
-                                            disabled={addingEvent}
-                                            style={{
-                                                backgroundColor: '#4285F4',
-                                                color: 'white',
-                                                border: 'none',
-                                                padding: '5px 10px',
-                                                borderRadius: '4px',
-                                                cursor: addingEvent ? 'not-allowed' : 'pointer',
-                                                opacity: addingEvent ? 0.7 : 1,
-                                                marginRight: '5px'
-                                            }}
-                                        >
-                                            {addingEvent ? 'Adding...' : 'Add to Calendar'}
-                                        </button>
-                                    )}
+                                        {!isNoReplyEmail(email.from) ? (
+                                            <button 
+                                                onClick={() => handleReplyClick(email.id)}
+                                                style={{ marginRight: '5px' }}
+                                            >
+                                                Reply
+                                            </button>
+                                        ) : (
+                                            <button 
+                                                disabled 
+                                                title="Cannot reply to no-reply addresses"
+                                                style={{ 
+                                                    opacity: 0.5, 
+                                                    cursor: 'not-allowed',
+                                                    marginRight: '5px'
+                                                }}
+                                            >
+                                                Reply
+                                            </button>
+                                        )}
+                                        {/* Only show Add to Calendar button if the email likely contains event info */}
+                                        {likelyContainsEventInfo(email) && (
+                                            <button 
+                                                onClick={() => handleAddToCalendar(email.id)}
+                                                disabled={addingEvent}
+                                                style={{
+                                                    backgroundColor: '#4285F4',
+                                                    color: 'white',
+                                                    border: 'none',
+                                                    padding: '5px 10px',
+                                                    borderRadius: '4px',
+                                                    cursor: addingEvent ? 'not-allowed' : 'pointer',
+                                                    opacity: addingEvent ? 0.7 : 1,
+                                                    marginRight: '5px'
+                                                }}
+                                            >
+                                                {addingEvent ? 'Adding...' : 'Add to Calendar'}
+                                            </button>
+                                        )}
                             {replyingTo === email.id && (
                                         <div style={{ marginTop: '10px' }}>
                                             <select 
@@ -562,12 +611,13 @@ const Dashboard = () => {
                                             </button>
                                 </div>
                             )}
-                                </div>
+                                    </div>
                         </li>
-                    )) 
+                            ))}
+                        </div>
+                    )}
+                </div>
                 )}
-            </ul>
-            )}
         </div>
     );
 };
