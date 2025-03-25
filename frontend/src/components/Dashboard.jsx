@@ -1,5 +1,5 @@
 import { useAuth } from "../context/useAuth";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import AIAgent from "./AIAgent";
 
@@ -24,10 +24,43 @@ const Dashboard = () => {
     const [newsError, setNewsError] = useState(null);
     const NEWS_API_KEY = import.meta.env.VITE_NEWS_API_KEY;
     const searchInputRef = useRef(null);
+    const [summarizing, setSummarizing] = useState(null);
+    const [summaryErrors, setSummaryErrors] = useState({});
+    const [expandedSummaries, setExpandedSummaries] = useState({});
 
     // Function to fetch emails
-    const fetchData = async () => {
-        setIsLoading(true);
+    const fetchData = useCallback(async (forceRefresh = false) => {
+        // If not forcing refresh and we have cached data, use it
+        const cachedEmails = localStorage.getItem('cachedEmails');
+        const cachedTimestamp = localStorage.getItem('emailsCachedAt');
+        const now = new Date().getTime();
+        
+        // Use cache if: not forcing refresh, cache exists, and cache is less than 5 minutes old
+        if (!forceRefresh && 
+            cachedEmails && 
+            cachedTimestamp && 
+            (now - parseInt(cachedTimestamp) < 5 * 60 * 1000)) {
+            try {
+                const parsedEmails = JSON.parse(cachedEmails);
+                setEmails(parsedEmails);
+                if (searchQuery.trim() === "") {
+                    setFilteredEmails(parsedEmails);
+                }
+                setLastRefresh(new Date(parseInt(cachedTimestamp)));
+                setIsLoading(false);
+                return;
+            } catch (err) {
+                console.error("Error parsing cached emails:", err);
+                // Continue with API fetch if cache parsing fails
+            }
+        }
+        
+        // If we're forcing refresh or cache is invalid, fetch from API
+        if (forceRefresh) {
+            setRefreshing(true);
+        } else {
+            setIsLoading(true);
+        }
         setError(null);
 
         try {
@@ -55,6 +88,11 @@ const Dashboard = () => {
             }
 
             const data = await response.json();
+            
+            // Cache the emails in localStorage
+            localStorage.setItem('cachedEmails', JSON.stringify(data));
+            localStorage.setItem('emailsCachedAt', now.toString());
+            
             setEmails(data);
             // Also update filtered emails
             if (searchQuery.trim() === "") {
@@ -70,7 +108,7 @@ const Dashboard = () => {
             setIsLoading(false);
             setRefreshing(false);
         }
-    };
+    }, [searchQuery, navigate, logout, validateSession]);
 
     // Function to fetch news based on search query
     const fetchNews = async (query) => {
@@ -112,20 +150,22 @@ const Dashboard = () => {
     };
 
     useEffect(() => {
-        fetchData();
+        // Only fetch on mount, not when dependencies change
+        const shouldFetch = !localStorage.getItem('cachedEmails');
+        if (shouldFetch) {
+            fetchData(false);
+        } else {
+            // Use cached data
+            fetchData(false);
+        }
         
-        // Start refresh interval
-        refreshIntervalRef.current = setInterval(() => {
-            fetchData();
-        }, 30000); // Refresh every 30 seconds
-        
-        // Cleanup interval on unmount
+        // Cleanup function (keep this part)
         return () => {
             if (refreshIntervalRef.current) {
                 clearInterval(refreshIntervalRef.current);
             }
         };
-    }, [user, navigate, logout, validateSession]);
+    }, []); // Empty dependency array - only run on mount
 
     // Function to check if an email is from a no-reply address
     const isNoReplyEmail = (fromAddress) => {
@@ -155,6 +195,38 @@ const Dashboard = () => {
         
         // Check if the email contains any of the no-reply patterns
         return noReplyPatterns.some(pattern => lowerCaseFrom.includes(pattern));
+    };
+
+    const getEmailContent = (email) => {
+        // Get the best available preview content
+        let previewContent = '';
+        
+        // Use snippet if available
+        if (email.snippet && email.snippet.trim() !== '') {
+            previewContent = email.snippet;
+        }
+        // Try bodyPreview if no snippet or snippet is empty
+        else if (email.bodyPreview && email.bodyPreview.trim() !== '') {
+            previewContent = email.bodyPreview;
+        }
+        // Use body text if available, trim to reasonable length
+        else if (email.body && typeof email.body === 'string') {
+            // Remove any HTML tags
+            const textOnly = email.body.replace(/<[^>]*>/g, ' ');
+            // Trim to 150 characters
+            previewContent = textOnly.substring(0, 150) + (textOnly.length > 150 ? '...' : '');
+        }
+        else {
+            previewContent = 'Email preview not available. Please check the email directly.';
+        }
+        
+        // Check if AI summary is available and valid
+        const hasAiSummary = email.summary && !email.summary.includes('API quota exceeded');
+        
+        return {
+            preview: previewContent,
+            aiSummary: hasAiSummary ? email.summary : null
+        };
     };
 
     const handleMarkAsRead = async (emailId) => {
@@ -411,6 +483,59 @@ const Dashboard = () => {
         );
     };
 
+    // Add this new function to request a summary for a specific email
+    const requestEmailSummary = async (emailId) => {
+        if (summarizing === emailId) return; // Prevent duplicate requests
+        
+        setSummarizing(emailId);
+        setSummaryErrors(prev => ({ ...prev, [emailId]: null }));
+        
+        try {
+            const response = await fetch(`http://localhost:5000/email/summarize/${emailId}`, {
+                method: "POST",
+                credentials: "include",
+                headers: {
+                    "Content-Type": "application/json",
+                }
+            });
+            
+            if (!response.ok) {
+                throw new Error(`Failed to generate summary: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            
+            // Update the email with the new summary
+            setEmails(prevEmails => 
+                prevEmails.map(email => 
+                    email.id === emailId ? { ...email, summary: data.summary } : email
+                )
+            );
+        } catch (error) {
+            console.error("Error generating summary:", error);
+            setSummaryErrors(prev => ({ 
+                ...prev, 
+                [emailId]: "Failed to generate summary. API quota may still be exceeded."
+            }));
+        } finally {
+            setSummarizing(null);
+        }
+    };
+
+    // Add a function to toggle summary expansion
+    const toggleSummary = (emailId) => {
+        setExpandedSummaries(prev => ({
+            ...prev,
+            [emailId]: !prev[emailId]
+        }));
+    };
+
+    // Update the refresh button click handler
+    const handleRefresh = () => {
+        setRefreshing(true);
+        fetchData(true); // Force refresh
+    };
+
     if (loading) return <p>Loading...</p>;
     if (!user) return <p>Please log in to view the dashboard.</p>;
 
@@ -474,10 +599,7 @@ const Dashboard = () => {
                             )}
                             <button 
                                 className={`refresh-button ${refreshing ? 'refreshing' : ''}`}
-                                onClick={() => {
-                                    setRefreshing(true);
-                                    fetchData();
-                                }}
+                                onClick={handleRefresh}
                             >
                                 Refresh
                             </button>
@@ -514,7 +636,67 @@ const Dashboard = () => {
                                     )}
                                     <br />
                             <strong>Subject:</strong> {email.subject}<br />
-                            <strong>Summary:</strong> {email.summary}<br />
+                            <strong>Preview:</strong> {getEmailContent(email).preview}<br />
+                            
+                            {getEmailContent(email).aiSummary ? (
+                                <div style={{ marginTop: '5px' }}>
+                                    <button
+                                        onClick={() => toggleSummary(email.id)}
+                                        style={{
+                                            background: 'none',
+                                            border: 'none',
+                                            textDecoration: 'underline',
+                                            cursor: 'pointer',
+                                            color: 'black',
+                                            fontSize: '0.9rem',
+                                            padding: '0',
+                                            display: 'inline-flex',
+                                            alignItems: 'center'
+                                        }}
+                                    >
+                                        {expandedSummaries[email.id] ? 'Hide AI Summary' : 'Show AI Summary'}
+                                    </button>
+                                    
+                                    {expandedSummaries[email.id] && (
+                                        <div style={{ 
+                                            margin: '8px 0',
+                                            padding: '8px 12px',
+                                            background: '#f9f9f9',
+                                            borderLeft: '3px solid #4285F4',
+                                            borderRadius: '2px'
+                                        }}>
+                                            <strong>AI Summary:</strong> {getEmailContent(email).aiSummary}
+                                        </div>
+                                    )}
+                                </div>
+                            ) : (
+                                <div style={{ marginTop: '5px' }}>
+                                    <button
+                                        onClick={() => requestEmailSummary(email.id)}
+                                        disabled={summarizing === email.id}
+                                        style={{
+                                            fontSize: '0.9rem',
+                                            padding: '2px 8px',
+                                            backgroundColor: '#f0f0f0',
+                                            border: '1px solid #ccc',
+                                            borderRadius: '3px',
+                                            cursor: summarizing === email.id ? 'wait' : 'pointer'
+                                        }}
+                                    >
+                                        {summarizing === email.id ? 'Generating...' : 'Generate AI Summary'}
+                                    </button>
+                                    {summaryErrors[email.id] && (
+                                        <div style={{ 
+                                            color: 'red', 
+                                            fontSize: '0.8rem', 
+                                            marginTop: '4px' 
+                                        }}>
+                                            {summaryErrors[email.id]}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                            
                                     <div style={{ marginTop: '10px' }}>
                                         <button 
                                             onClick={() => handleMarkAsRead(email.id)}

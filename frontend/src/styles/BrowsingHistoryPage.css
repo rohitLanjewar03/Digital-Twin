@@ -259,4 +259,26 @@ button:disabled {
   .email-display {
     margin-bottom: 10px;
   }
+}
+
+.last-refresh {
+  font-size: 0.8rem;
+  color: #666;
+  margin-left: 15px;
+}
+
+.content-loading {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+/* Optional loading animation */
+@keyframes fadeInOut {
+  0% { opacity: 0.6; }
+  50% { opacity: 0.8; }
+  100% { opacity: 0.6; }
+}
+
+.content-loading {
+  animation: fadeInOut 1.5s infinite ease-in-out;
 } 
