@@ -419,9 +419,6 @@ const Dashboard = () => {
             <header>
                 <h1>Digital Twin Dashboard</h1>
                 <div className="header-buttons">
-                    <Link to="/history" className="history-button">
-                        Browsing History
-                    </Link>
                     <Link to="/news" className="news-button">
                         News Feed
                     </Link>

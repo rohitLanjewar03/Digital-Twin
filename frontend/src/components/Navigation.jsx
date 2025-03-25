@@ -19,7 +19,6 @@ const Navigation = () => {
         
         <div className="nav-links">
           <Link to="/dashboard" className={isActive('/dashboard')}>Dashboard</Link>
-          <Link to="/history" className={isActive('/history')}>Browsing History</Link>
           <Link to="/news-search" className={isActive('/news-search')}>News Search</Link>
         </div>
         
