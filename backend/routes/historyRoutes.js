@@ -30,9 +30,14 @@ router.use('/test', (req, res, next) => {
 // This uses a simple email parameter to identify the user
 router.post('/test', async (req, res) => {
   try {
-    console.log('Received test history data:', req.body);
+    const { history, email, chunkInfo } = req.body;
     
-    const { history, email } = req.body;
+    // Log chunk information if available
+    if (chunkInfo) {
+      console.log(`Received chunk ${chunkInfo.chunkNumber}/${chunkInfo.totalChunks} with ${history ? history.length : 0} items for email: ${email}`);
+    } else {
+      console.log(`Received test history data with ${history ? history.length : 0} items for email: ${email}`);
+    }
     
     if (!history || !Array.isArray(history)) {
       return res.status(400).json({ error: 'Invalid history data format' });
@@ -46,6 +51,32 @@ router.post('/test', async (req, res) => {
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(400).json({ error: 'User not found with the provided email' });
+    }
+
+    // Analyze the date range of the history data
+    if (history.length > 0) {
+      const timestamps = history.map(item => new Date(item.lastVisitTime).getTime());
+      const oldestTime = Math.min(...timestamps);
+      const newestTime = Math.max(...timestamps);
+      const oldestDate = new Date(oldestTime);
+      const newestDate = new Date(newestTime);
+      const daysCovered = (newestTime - oldestTime) / (1000 * 60 * 60 * 24);
+      
+      console.log(`Current chunk history date range: ${oldestDate.toLocaleString()} to ${newestDate.toLocaleString()}`);
+      console.log(`Days covered in this chunk: ${daysCovered.toFixed(1)}`);
+      
+      // Count items per day
+      const dayBuckets = {};
+      history.forEach(item => {
+        const date = new Date(item.lastVisitTime);
+        const dateStr = date.toDateString();
+        if (!dayBuckets[dateStr]) {
+          dayBuckets[dateStr] = 0;
+        }
+        dayBuckets[dateStr]++;
+      });
+      
+      console.log('Items per day in this chunk:', dayBuckets);
     }
 
     // Process the history items to ensure proper format
@@ -64,6 +95,8 @@ router.post('/test', async (req, res) => {
       // For each new history item:
       // - If URL exists, update visit count and time
       // - If URL is new, add to history array
+      let updatedCount = 0;
+      let newCount = 0;
       
       processedHistory.forEach(newItem => {
         const existingItemIndex = userHistory.history.findIndex(
@@ -81,14 +114,18 @@ router.post('/test', async (req, res) => {
               newItem.lastVisitTime.getTime()
             ))
           };
+          updatedCount++;
         } else {
           // Add new item
           userHistory.history.push(newItem);
+          newCount++;
         }
       });
       
       userHistory.lastUpdated = new Date();
       await userHistory.save();
+      
+      console.log(`Updated ${updatedCount} existing items and added ${newCount} new items`);
     } else {
       // Create new history record
       userHistory = new BrowsingHistory({
@@ -98,14 +135,27 @@ router.post('/test', async (req, res) => {
       });
       
       await userHistory.save();
+      console.log(`Created new history record with ${processedHistory.length} items`);
     }
 
-    return res.status(200).json({ 
+    // Prepare response
+    const response = { 
       success: true, 
-      message: 'History saved successfully',
+      message: chunkInfo 
+        ? `Chunk ${chunkInfo.chunkNumber}/${chunkInfo.totalChunks} processed successfully` 
+        : 'History saved successfully',
       count: userHistory.history.length,
-      user: user.email
-    });
+      user: user.email,
+      itemsReceived: history.length,
+      totalStoredItems: userHistory.history.length
+    };
+    
+    // Add chunk info to response if available
+    if (chunkInfo) {
+      response.chunkInfo = chunkInfo;
+    }
+
+    return res.status(200).json(response);
   } catch (error) {
     console.error('Error in test endpoint:', error);
     return res.status(500).json({ error: 'Server error in test endpoint' });

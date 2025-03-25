@@ -59,10 +59,18 @@ function fetchHistory() {
   const days = parseInt(daysSelect.value);
   
   fetchBtn.disabled = true;
-  showStatus('Fetching history...', 'normal');
+  showStatus(`Fetching history for the last ${days} days...`, 'normal');
   
   try {
-    console.log('Sending getHistory message to background script');
+    console.log(`Requesting ${days} days of history from background script`);
+    
+    // Calculate the date range for display
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
+    
+    console.log(`Date range: ${startDate.toLocaleDateString()} to ${endDate.toLocaleDateString()}`);
+    
     chrome.runtime.sendMessage(
       { action: 'getHistory', days: days },
       (response) => {
@@ -79,8 +87,26 @@ function fetchHistory() {
         if (response && response.success) {
           historyData = response.history;
           displayHistory(historyData);
-          sendBtn.disabled = !isAuthenticated;
-          showStatus(`Successfully fetched ${historyData.length} history items`, 'success');
+          sendBtn.disabled = false; // Enable send button regardless of authentication
+          
+          // Get date range from actual data
+          if (historyData.length > 0) {
+            const timestamps = historyData.map(item => item.lastVisitTime);
+            const oldestTime = Math.min(...timestamps);
+            const newestTime = Math.max(...timestamps);
+            
+            const oldestDate = new Date(oldestTime);
+            const newestDate = new Date(newestTime);
+            
+            const actualDays = (newestTime - oldestTime) / (1000 * 60 * 60 * 24);
+            
+            showStatus(
+              `Successfully fetched ${historyData.length} history items from ${oldestDate.toLocaleDateString()} to ${newestDate.toLocaleDateString()} (${actualDays.toFixed(1)} days)`, 
+              'success'
+            );
+          } else {
+            showStatus(`No history found for the last ${days} days`, 'error');
+          }
         } else {
           showStatus(`Error: ${response?.error || 'Unknown error'}`, 'error');
         }
@@ -159,11 +185,20 @@ function sendToServer() {
   // Save email for next time
   chrome.storage.local.set({ 'userEmail': email });
   
+  // Calculate size of data (rough estimation)
+  const dataSize = JSON.stringify(historyData).length / 1024;
+  
   sendBtn.disabled = true;
-  showStatus('Sending data to server...', 'normal');
+  showStatus(`Sending ${historyData.length} history items (${dataSize.toFixed(2)} KB) to server...`, 'normal');
   
   try {
-    console.log('Sending sendToServer message to background script');
+    console.log(`Sending ${historyData.length} history items to the server`);
+    
+    // For large data sets, warn the user that this might take a while
+    if (historyData.length > 1000) {
+      showStatus(`Sending ${historyData.length} history items (${dataSize.toFixed(2)} KB) to server. This may take a few moments...`, 'normal');
+    }
+    
     chrome.runtime.sendMessage(
       { 
         action: 'sendToServer', 
@@ -181,7 +216,26 @@ function sendToServer() {
         console.log('Received response:', response);
         
         if (response && response.success) {
-          showStatus('Successfully sent data to server', 'success');
+          if (response.response && response.response.message) {
+            showStatus(response.response.message, 'success');
+          } else {
+            showStatus('Successfully sent data to server', 'success');
+          }
+          
+          // If we have details about chunks, show additional information
+          if (response.response && response.response.details && response.response.details.length > 0) {
+            // Calculate total items saved across all chunks
+            let totalItemsProcessed = 0;
+            response.response.details.forEach(detail => {
+              if (detail && detail.itemsReceived) {
+                totalItemsProcessed += detail.itemsReceived;
+              }
+            });
+            
+            // Show count in the countDiv
+            countDiv.textContent = `Sent ${totalItemsProcessed} history items to server and saved successfully.`;
+            countDiv.style.display = 'block';
+          }
         } else {
           showStatus(`Error: ${response?.error || 'Unknown error'}`, 'error');
           sendBtn.disabled = false;
