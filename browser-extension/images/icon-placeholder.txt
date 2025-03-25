@@ -1,0 +1,6 @@
+Please replace this placeholder file with actual icon images in PNG format with the following names:
+- icon16.png (16x16 pixels)
+- icon48.png (48x48 pixels)
+- icon128.png (128x128 pixels)
+
+You can create these icons using any image editing software. For a simple icon, you could use a blue circle with a clock or history symbol. 

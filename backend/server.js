@@ -12,16 +12,31 @@ const emailRoutes = require('./routes/emailRoutes');
 const agentRoutes = require('./routes/agentRoutes');
 const searchRoutes = require('./routes/searchRoutes');
 const newsRoutes = require('./routes/newsRoutes');
+const historyRoutes = require('./routes/historyRoutes');
 
 const app = express();
-app.use(cors({ origin: "http://localhost:5173", credentials: true }));
+
+// Configure CORS to allow requests from frontend and Chrome extension
+app.use(cors({ 
+    origin: [
+        "http://localhost:5173",
+        /^chrome-extension:\/\/.+$/  // Allow all Chrome extensions
+    ],
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
 app.use(express.json());
 
 app.use(session({ 
     secret: process.env.SESSION_SECRET || 'your-secret-key', 
     resave: false,
     saveUninitialized: false,
-    cookie: { secure: false }
+    cookie: { 
+        secure: false,
+        sameSite: 'lax' // Help with cross-site requests
+    }
 }));
 app.use(passport.initialize());
 app.use(passport.session());
@@ -35,6 +50,7 @@ app.use('/email', emailRoutes);
 app.use('/agent', agentRoutes);
 app.use('/search', searchRoutes);
 app.use('/news', newsRoutes);
+app.use('/history', historyRoutes);
 
 const PORT = process.env.PORT;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

@@ -1,0 +1,14 @@
+{
+  "manifest_version": 3,
+  "name": "Browsing History Collector",
+  "version": "1.0.1",
+  "description": "Collects browsing history for display on our website",
+  "permissions": ["history", "storage", "cookies"],
+  "host_permissions": ["http://localhost:5000/*"],
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "background": {
+    "service_worker": "background.js"
+  }
+} 
