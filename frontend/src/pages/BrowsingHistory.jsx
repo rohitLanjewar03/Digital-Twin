@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/useAuth';
 import { useHistory } from '../context/HistoryContext';
+import { Link } from 'react-router-dom';
 import '../styles/BrowsingHistoryPage.css';
 
 const BrowsingHistory = () => {
@@ -78,6 +79,9 @@ const BrowsingHistory = () => {
       <div className="header">
         <h1>Browsing History</h1>
         <div className="actions">
+          <Link to="/browsing-history-analytics" className="analytics-button">
+            View Analytics
+          </Link>
           <button 
             className="refresh-button"
             onClick={handleRefresh}

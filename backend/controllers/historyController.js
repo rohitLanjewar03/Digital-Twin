@@ -1,4 +1,5 @@
 const BrowsingHistory = require('../models/BrowsingHistory');
+const historyAnalysisService = require('../services/historyAnalysisService');
 
 /**
  * Save browsing history data from the extension
@@ -206,6 +207,129 @@ exports.getHistoryByEmail = async (req, res) => {
     });
   } catch (error) {
     console.error('Error getting browsing history by email:', error);
+    return res.status(500).json({ error: 'Server error' });
+  }
+};
+
+/**
+ * Get analytics for user browsing history
+ */
+exports.getHistoryAnalytics = async (req, res) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    const userId = req.user._id;
+    
+    // Check if there's any history data
+    const userHistory = await BrowsingHistory.findOne({ user: userId });
+    
+    if (!userHistory || userHistory.history.length === 0) {
+      return res.status(404).json({ error: 'No browsing history data available for analysis' });
+    }
+    
+    // Get cache parameter
+    const useCache = req.query.cache !== 'false';
+    
+    // Check for cached analysis in the user history record
+    if (useCache && userHistory.analysis && userHistory.analysisTimestamp) {
+      // If analysis exists and is less than 1 hour old
+      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+      if (userHistory.analysisTimestamp > oneHourAgo) {
+        return res.status(200).json({
+          analysis: userHistory.analysis,
+          fromCache: true,
+          analysisTimestamp: userHistory.analysisTimestamp
+        });
+      }
+    }
+    
+    // If no cached analysis or force refresh, generate new analysis
+    const analysis = await historyAnalysisService.analyzeUserHistory(userId);
+    
+    if (analysis.error) {
+      return res.status(500).json({ error: analysis.error });
+    }
+    
+    // Store the analysis in the user history record
+    userHistory.analysis = analysis;
+    userHistory.analysisTimestamp = new Date();
+    await userHistory.save();
+    
+    return res.status(200).json({
+      analysis,
+      fromCache: false,
+      analysisTimestamp: userHistory.analysisTimestamp
+    });
+  } catch (error) {
+    console.error('Error getting history analytics:', error);
+    return res.status(500).json({ error: 'Server error' });
+  }
+};
+
+/**
+ * Get analytics for user by email (for testing without authentication)
+ */
+exports.getHistoryAnalyticsByEmail = async (req, res) => {
+  try {
+    const { email } = req.query;
+    
+    if (!email) {
+      return res.status(400).json({ error: 'Email parameter is required' });
+    }
+    
+    // Find user by email
+    const user = await require('../models/User').findOne({ email });
+    
+    if (!user) {
+      return res.status(400).json({ error: 'User not found with the provided email' });
+    }
+    
+    const userId = user._id;
+    
+    // Check if there's any history data
+    const userHistory = await BrowsingHistory.findOne({ user: userId });
+    
+    if (!userHistory || userHistory.history.length === 0) {
+      return res.status(404).json({ error: 'No browsing history data available for analysis' });
+    }
+    
+    // Get cache parameter
+    const useCache = req.query.cache !== 'false';
+    
+    // Check for cached analysis in the user history record
+    if (useCache && userHistory.analysis && userHistory.analysisTimestamp) {
+      // If analysis exists and is less than 1 hour old
+      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+      if (userHistory.analysisTimestamp > oneHourAgo) {
+        return res.status(200).json({
+          analysis: userHistory.analysis,
+          fromCache: true,
+          analysisTimestamp: userHistory.analysisTimestamp
+        });
+      }
+    }
+    
+    // If no cached analysis or force refresh, generate new analysis
+    const analysis = await historyAnalysisService.analyzeUserHistory(userId);
+    
+    if (analysis.error) {
+      return res.status(500).json({ error: analysis.error });
+    }
+    
+    // Store the analysis in the user history record
+    userHistory.analysis = analysis;
+    userHistory.analysisTimestamp = new Date();
+    await userHistory.save();
+    
+    return res.status(200).json({
+      analysis,
+      fromCache: false,
+      analysisTimestamp: userHistory.analysisTimestamp
+    });
+  } catch (error) {
+    console.error('Error getting history analytics by email:', error);
     return res.status(500).json({ error: 'Server error' });
   }
 }; 

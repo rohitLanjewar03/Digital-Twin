@@ -9,6 +9,9 @@ const router = express.Router();
 // Add public endpoint for getting history by email
 router.get('/by-email', historyController.getHistoryByEmail);
 
+// Add public endpoint for analytics by email (no auth required)
+router.get('/analytics-by-email', historyController.getHistoryAnalyticsByEmail);
+
 // Protect most routes with authentication middleware
 router.use(isAuthenticated);
 
@@ -17,6 +20,9 @@ router.post('/', historyController.saveHistory);
 
 // Route to get user's browsing history
 router.get('/', historyController.getHistory);
+
+// Route to get analytics for user's browsing history
+router.get('/analytics', historyController.getHistoryAnalytics);
 
 // Route to delete browsing history
 router.delete('/', historyController.deleteHistory);

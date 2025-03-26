@@ -18,11 +18,6 @@ const Dashboard = () => {
     const refreshIntervalRef = useRef(null);
     const [searchQuery, setSearchQuery] = useState("");
     const navigate = useNavigate();
-    const [newsArticles, setNewsArticles] = useState([]);
-    const [showNews, setShowNews] = useState(false);
-    const [newsLoading, setNewsLoading] = useState(false);
-    const [newsError, setNewsError] = useState(null);
-    const NEWS_API_KEY = import.meta.env.VITE_NEWS_API_KEY;
     const searchInputRef = useRef(null);
     const [summarizing, setSummarizing] = useState(null);
     const [summaryErrors, setSummaryErrors] = useState({});
@@ -109,45 +104,6 @@ const Dashboard = () => {
             setRefreshing(false);
         }
     }, [searchQuery, navigate, logout, validateSession]);
-
-    // Function to fetch news based on search query
-    const fetchNews = async (query) => {
-        if (!query) return;
-        
-        setNewsLoading(true);
-        setNewsError(null);
-        
-        try {
-            // Get today's date and format it
-            const today = new Date();
-            const formattedDate = today.toISOString().split('T')[0];
-            
-            // Use the News API to fetch articles related to the search query
-            const response = await fetch(
-                `https://newsapi.org/v2/everything?q=${encodeURIComponent(query)}&from=${formattedDate}&sortBy=popularity&apiKey=${NEWS_API_KEY}`
-            );
-            
-            if (!response.ok) {
-                throw new Error(`News API Error: ${response.status} ${response.statusText}`);
-            }
-            
-            const data = await response.json();
-            
-            if (data.status === 'ok' && data.articles && data.articles.length > 0) {
-                // Limit to top 5 articles
-                setNewsArticles(data.articles.slice(0, 5));
-                setShowNews(true);
-            } else {
-                setNewsArticles([]);
-                setNewsError("No news articles found for this search query.");
-            }
-        } catch (err) {
-            console.error("Error fetching news:", err);
-            setNewsError(`Failed to load news: ${err.message}`);
-        } finally {
-            setNewsLoading(false);
-        }
-    };
 
     useEffect(() => {
         // Only fetch on mount, not when dependencies change
@@ -406,18 +362,9 @@ const Dashboard = () => {
                 email.snippet?.toLowerCase().includes(lowercaseQuery)
             );
             setFilteredEmails(filtered);
-            
-            // Fetch news related to the search query
-            fetchNews(searchQuery);
         } else {
             setFilteredEmails(emails);
-            setShowNews(false);
         }
-    };
-
-    // Toggle news display
-    const toggleNews = () => {
-        setShowNews(!showNews);
     };
 
     // Update email filtering when emails change
@@ -434,54 +381,6 @@ const Dashboard = () => {
             setFilteredEmails(filtered);
         }
     }, [emails, searchQuery]);
-
-    // Render news articles section
-    const renderNewsArticles = () => {
-        if (newsLoading) {
-            return <div className="news-loading">Loading related news...</div>;
-        }
-        
-        if (newsError) {
-            return <div className="news-error">{newsError}</div>;
-        }
-        
-        if (newsArticles.length === 0) {
-            return <div className="no-news">No related news articles found.</div>;
-        }
-        
-        return (
-            <div className="news-articles">
-                <h3>Related News for "{searchQuery}"</h3>
-                <ul className="news-list">
-                    {newsArticles.map((article, index) => (
-                        <li key={index} className="news-item">
-                            {article.urlToImage && (
-                                <img 
-                                    src={article.urlToImage} 
-                                    alt={article.title} 
-                                    className="news-image"
-                                />
-                            )}
-                            <div className="news-content">
-                                <h4 className="news-title">
-                                    <a href={article.url} target="_blank" rel="noopener noreferrer">
-                                        {article.title}
-                                    </a>
-                                </h4>
-                                <p className="news-description">{article.description}</p>
-                                <div className="news-meta">
-                                    <span className="news-source">{article.source.name}</span>
-                                    <span className="news-date">
-                                        {new Date(article.publishedAt).toLocaleDateString()}
-                                    </span>
-                                </div>
-                            </div>
-                        </li>
-                    ))}
-                </ul>
-            </div>
-        );
-    };
 
     // Add this new function to request a summary for a specific email
     const requestEmailSummary = async (emailId) => {
@@ -541,18 +440,6 @@ const Dashboard = () => {
 
     return (
         <div className="dashboard-container">
-            <header>
-                <h1>Digital Twin Dashboard</h1>
-                <div className="header-buttons">
-                    <Link to="/news" className="news-button">
-                        News Feed
-                    </Link>
-                    <button onClick={logout} className="logout-button">
-                        Logout
-                    </button>
-                </div>
-            </header>
-            
             {/* Search bar */}
             <div className="search-container">
                 <form onSubmit={handleSearchSubmit}>
@@ -567,16 +454,6 @@ const Dashboard = () => {
                     <button type="submit" className="search-button">Search</button>
                 </form>
             </div>
-            
-            {/* News Section */}
-            {newsArticles.length > 0 && (
-                <div className="news-container">
-                    <button className="toggle-news-btn" onClick={toggleNews}>
-                        {showNews ? "Hide News" : "Show Related News"}
-                    </button>
-                    {showNews && renderNewsArticles()}
-                </div>
-            )}
             
             {/* AI Agent Section */}
             <AIAgent />

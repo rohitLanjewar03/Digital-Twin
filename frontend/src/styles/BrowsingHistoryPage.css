@@ -281,4 +281,19 @@ button:disabled {
 
 .content-loading {
   animation: fadeInOut 1.5s infinite ease-in-out;
+}
+
+.analytics-button {
+  background-color: #34a853;
+  color: white;
+  padding: 8px 16px;
+  border-radius: 4px;
+  text-decoration: none;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+}
+
+.analytics-button:hover {
+  background-color: #2d9249;
 } 

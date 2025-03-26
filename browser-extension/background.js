@@ -165,37 +165,52 @@ async function sendChunksSequentially(chunks, startIndex, apiEndpoint, userEmail
 }
 
 // Function to fetch history for a specific time range
+// Modify the fetchHistoryForRange function in background.js
 function fetchHistoryForRange(startTime, endTime, maxResults, callback) {
-  // For Chrome, the maximum number of results in a single query is usually 5000
-  // But let's try to use 10000 to get more coverage
-  const maxResultsPerQuery = 10000;
+  // Split the time range into smaller chunks (e.g., 3-day chunks)
+  const millisecondsPerDay = 1000 * 60 * 60 * 24;
+  const chunkSize = 3 * millisecondsPerDay; // 3 days per chunk
+  const chunks = [];
   
-  chrome.history.search({
-    text: '',          // Return all history items
-    startTime: startTime,
-    endTime: endTime,
-    maxResults: maxResultsPerQuery
-  }, (historyItems) => {
-    console.log(`Raw history fetch returned ${historyItems.length} items`);
-    
-    // Check if we have reasonable coverage for the time range
-    if (historyItems.length > 0) {
-      // Get the oldest and newest timestamps
-      const timestamps = historyItems.map(item => item.lastVisitTime);
-      const oldestTime = Math.min(...timestamps);
-      const newestTime = Math.max(...timestamps);
+  // Create time chunks
+  for (let start = startTime; start < endTime; start += chunkSize) {
+    const end = Math.min(start + chunkSize, endTime);
+    chunks.push({ start, end });
+  }
+  
+  console.log(`Split time range into ${chunks.length} chunks`);
+  
+  // Process all chunks and combine results
+  let allItems = [];
+  let processedChunks = 0;
+  
+  chunks.forEach((chunk, index) => {
+    chrome.history.search({
+      text: '',
+      startTime: chunk.start,
+      endTime: chunk.end,
+      maxResults: 5000 // Max per chunk
+    }, (historyItems) => {
+      console.log(`Chunk ${index+1}/${chunks.length} returned ${historyItems.length} items`);
+      allItems = [...allItems, ...historyItems];
+      processedChunks++;
       
-      console.log(`History date range: ${new Date(oldestTime).toLocaleString()} to ${new Date(newestTime).toLocaleString()}`);
-      
-      // Calculate the number of days covered
-      const daysCovered = (newestTime - oldestTime) / (1000 * 60 * 60 * 24);
-      console.log(`Days covered in history: ${daysCovered.toFixed(1)}`);
-      
-      // If we have a reasonable coverage, return the items
-      callback(historyItems);
-    } else {
-      console.warn("No history items found in the specified range");
-      callback([]);
-    }
+      // When all chunks processed, return combined results
+      if (processedChunks === chunks.length) {
+        // Remove duplicates by URL
+        const uniqueItems = [];
+        const seenUrls = new Set();
+        
+        allItems.forEach(item => {
+          if (!seenUrls.has(item.url)) {
+            seenUrls.add(item.url);
+            uniqueItems.push(item);
+          }
+        });
+        
+        console.log(`Total items after deduplication: ${uniqueItems.length}`);
+        callback(uniqueItems);
+      }
+    });
   });
-} 
+}

@@ -18,7 +18,7 @@ const Navigation = () => {
         </div>
         
         <div className="nav-links">
-          <Link to="/dashboard" className={isActive('/dashboard')}>Dashboard</Link>
+          <Link to="/dashboard" className={isActive('/dashboard')}>Emails</Link>
           <Link to="/news-search" className={isActive('/news-search')}>News Search</Link>
           <Link to="/browsing-history" className={isActive('/browsing-history')}>Browsing History</Link>
         </div>

@@ -3,6 +3,7 @@ import Login from './pages/Login.jsx';
 import Dashboard from './components/Dashboard.jsx';
 import NewsSearchPage from './pages/NewsSearchPage.jsx';
 import BrowsingHistory from './pages/BrowsingHistory.jsx';
+import BrowsingHistoryAnalytics from './pages/BrowsingHistoryAnalytics.jsx';
 import Navigation from './components/Navigation.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 import { HistoryProvider } from './context/HistoryContext.jsx';
@@ -20,6 +21,14 @@ function App() {
               <Navigation />
               <div className="content-container">
                 <BrowsingHistory />
+              </div>
+            </>
+          } />
+          <Route path="/browsing-history-analytics" element={
+            <>
+              <Navigation />
+              <div className="content-container">
+                <BrowsingHistoryAnalytics />
               </div>
             </>
           } />

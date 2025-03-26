@@ -28,6 +28,15 @@ const BrowsingHistorySchema = new mongoose.Schema({
   lastUpdated: {
     type: Date,
     default: Date.now
+  },
+  // Add analysis data fields
+  analysis: {
+    type: mongoose.Schema.Types.Mixed,
+    default: null
+  },
+  analysisTimestamp: {
+    type: Date,
+    default: null
   }
 });
 

@@ -10,7 +10,6 @@ require('./config/googleAuth');
 const authRoutes = require('./routes/authRoutes');
 const emailRoutes = require('./routes/emailRoutes');
 const agentRoutes = require('./routes/agentRoutes');
-const searchRoutes = require('./routes/searchRoutes');
 const newsRoutes = require('./routes/newsRoutes');
 const historyRoutes = require('./routes/historyRoutes');
 
@@ -48,7 +47,6 @@ mongoose.connect(process.env.MONGO_URI)
 app.use('/auth', authRoutes);
 app.use('/email', emailRoutes);
 app.use('/agent', agentRoutes);
-app.use('/search', searchRoutes);
 app.use('/news', newsRoutes);
 app.use('/history', historyRoutes);
 
