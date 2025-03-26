@@ -359,7 +359,7 @@ const BrowsingHistoryAnalytics = () => {
     
     const { averageDuration = 0, averageSessionDepth = 0, count = 0 } = sessionData;
     return (
-      <>
+      <div>
         <p>
           Your average browsing session duration is {averageDuration.toFixed(1)} minutes.
           {averageDuration > 15 ? (
@@ -379,7 +379,7 @@ const BrowsingHistoryAnalytics = () => {
         <p>
           You have had {count} distinct browsing sessions.
         </p>
-      </>
+      </div>
     );
   };
   
@@ -391,7 +391,7 @@ const BrowsingHistoryAnalytics = () => {
     const { averageVisitsPerDay, returningVisitRate, weekdayVsWeekend } = behaviorPatterns.browsingPatterns || {};
     
     return (
-      <>
+      <div>
         <p>
           Your average browsing session duration is {(averageDuration || 0).toFixed(1)} minutes.
           {averageDuration > 15 ? (
@@ -423,7 +423,141 @@ const BrowsingHistoryAnalytics = () => {
             <span className="negative-comparison">primarily on weekends</span>
           )}, with peak hours at {weekdayVsWeekend?.weekdayPeakHour || 0}:00 on weekdays and {weekdayVsWeekend?.weekendPeakHour || 0}:00 on weekends.
         </p>
-      </>
+      </div>
+    );
+  };
+  
+  // Render detailed behavior analysis section
+  const BehaviorDetailsSection = ({ behaviorDetails }) => {
+    if (!behaviorDetails || behaviorDetails.error) {
+      return (
+        <div className="analytics-section">
+          <h2>Detailed Behavior Analysis</h2>
+          <p className="text-muted">
+            {behaviorDetails?.error || 'Detailed behavior analysis not available.'}
+          </p>
+        </div>
+      );
+    }
+
+    const {
+      behavioralPatterns,
+      contentInsights,
+      digitalWellbeing,
+      learningBehavior,
+      keywordAnalysis,
+      insightSummary
+    } = behaviorDetails;
+
+    return (
+      <div className="analytics-section behavior-details">
+        <h2>Detailed Behavior Analysis</h2>
+        
+        <div className="insight-summary">
+          <h3>Insight Summary</h3>
+          <p className="summary-text">{insightSummary}</p>
+        </div>
+        
+        <div className="behavior-grid">
+          <div className="behavior-card">
+            <h3>Content Preferences</h3>
+            <ul className="tag-list">
+              {behavioralPatterns.contentPreferences.map((pref, idx) => (
+                <li key={idx} className="tag">{pref}</li>
+              ))}
+            </ul>
+            <div><strong>Time Usage:</strong> {behavioralPatterns.timeUsageHabits}</div>
+            <div><strong>Attention:</strong> {behavioralPatterns.attentionPatterns}</div>
+          </div>
+          
+          <div className="behavior-card">
+            <h3>Content Topics</h3>
+            <div className="topics-container">
+              <div>
+                <h4>Primary</h4>
+                <ul className="tag-list primary">
+                  {contentInsights.primaryTopics.map((topic, idx) => (
+                    <li key={idx} className="tag primary">{topic}</li>
+                  ))}
+                </ul>
+              </div>
+              <div>
+                <h4>Secondary</h4>
+                <ul className="tag-list secondary">
+                  {contentInsights.secondaryTopics.map((topic, idx) => (
+                    <li key={idx} className="tag secondary">{topic}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+            <div><strong>Content Depth:</strong> {contentInsights.contentDepth}</div>
+            <div><strong>Variety Score:</strong> {contentInsights.varietyScore}/10</div>
+          </div>
+          
+          <div className="behavior-card">
+            <h3>Digital Wellbeing</h3>
+            <div className="wellbeing-container">
+              <div>
+                <h4>Potential Challenges</h4>
+                <ul className="challenges-list">
+                  {digitalWellbeing.potentialChallenges.map((challenge, idx) => (
+                    <li key={idx}>{challenge}</li>
+                  ))}
+                </ul>
+              </div>
+              <div>
+                <h4>Healthy Patterns</h4>
+                <ul className="healthy-list">
+                  {digitalWellbeing.healthyPatterns.map((pattern, idx) => (
+                    <li key={idx}>{pattern}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+            <div className="recommendations">
+              <h4>Recommendations</h4>
+              <ul className="recommendations-list">
+                {digitalWellbeing.recommendations.map((rec, idx) => (
+                  <li key={idx}>{rec}</li>
+                ))}
+              </ul>
+            </div>
+          </div>
+          
+          <div className="behavior-card">
+            <h3>Learning Behavior</h3>
+            <div><strong>Knowledge Seeking:</strong> {learningBehavior.knowledgeSeeking}</div>
+            <div><strong>Research Depth:</strong> {learningBehavior.depthOfResearch}</div>
+            <div><strong>Educational Engagement:</strong> {learningBehavior.educationalEngagement}</div>
+            <h4>Potential Skills</h4>
+            <ul className="skills-list">
+              {learningBehavior.skillDevelopment.map((skill, idx) => (
+                <li key={idx}>{skill}</li>
+              ))}
+            </ul>
+          </div>
+          
+          <div className="behavior-card">
+            <h3>Keyword Analysis</h3>
+            <div>
+              <h4>Frequent Terms</h4>
+              <div className="keyword-cloud">
+                {keywordAnalysis.frequentTerms.map((term, idx) => (
+                  <span key={idx} className="keyword" style={{ fontSize: `${100 + (idx < 5 ? (5-idx)*20 : 0)}%` }}>
+                    {term}
+                  </span>
+                ))}
+              </div>
+              <h4>Semantic Topics</h4>
+              <ul className="semantic-list">
+                {keywordAnalysis.semanticTopics.map((topic, idx) => (
+                  <li key={idx}>{topic}</li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
     );
   };
   
@@ -988,6 +1122,9 @@ const BrowsingHistoryAnalytics = () => {
         <h2>Analysis Summary</h2>
         <p className="summary-text">{analytics.topicCategories?.summary || "No summary available."}</p>
       </div>
+      
+      {/* Detailed behavior analysis section */}
+      <BehaviorDetailsSection behaviorDetails={analytics.behaviorDetails} />
     </div>
   );
 };

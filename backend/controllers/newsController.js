@@ -1,5 +1,12 @@
 const axios = require('axios');
 const NodeCache = require('node-cache');
+const { OpenAI } = require('openai');
+const BrowsingHistory = require('../models/BrowsingHistory');
+
+// Initialize OpenAI client
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY
+});
 
 // Cache setup with 5 minutes TTL (reduced for fresher results)
 const cache = new NodeCache({ stdTTL: 5 * 60 });
@@ -127,34 +134,50 @@ const fetchNewsFromNewsAPI = async (query) => {
   }
 };
 
-// Improved function to validate image URLs with better checks
+// Helper function to safely parse JSON from OpenAI responses
+const safeJSONParse = (text) => {
+  try {
+    // First attempt direct parsing
+    return JSON.parse(text);
+  } catch (error) {
+    try {
+      // Check if response is wrapped in markdown code blocks
+      if (text.includes('```json') || text.includes('```')) {
+        // Extract content between code blocks
+        let jsonContent = text.replace(/^```json\s+/, '').replace(/^```\s+/, '').replace(/\s+```$/, '');
+        return JSON.parse(jsonContent);
+      }
+      
+      // Try to find JSON-like content in the text
+      const jsonMatch = text.match(/(\{[\s\S]*\})/);
+      if (jsonMatch && jsonMatch[0]) {
+        return JSON.parse(jsonMatch[0]);
+      }
+      
+      throw new Error('Could not parse JSON from response');
+    } catch (innerError) {
+      console.error('JSON parsing error:', innerError);
+      throw new Error(`Failed to parse JSON: ${innerError.message}`);
+    }
+  }
+};
+
+// Utility function to validate if a URL is an image
 const validateImageUrl = (url) => {
   if (!url) return false;
   
   try {
-    // Only accept HTTP/HTTPS URLs
-    if (!url.startsWith('http://') && !url.startsWith('https://')) {
-      return false;
-    }
+    const validImageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp'];
+    const lowerUrl = url.toLowerCase();
     
-    // Check for common image extensions
-    const hasImageExtension = /\.(jpg|jpeg|png|gif|webp)($|\?)/i.test(url);
+    // Check if the URL has any of the valid image extensions
+    const hasImageExtension = validImageExtensions.some(ext => lowerUrl.includes(ext));
     
-    // More comprehensive list of problematic domains
-    const problematicDomains = [
-      'espn.com', 'cnn.com', 'localhost', '127.0.0.1',
-      'wsimg.com', 'fbcdn.net', 'i.kinja-img.com',
-      'ytimg.com', 'self-signed', 'i2.wp.com'
-    ];
+    // Check if URL is valid (starts with http/https)
+    const isValidUrl = url.startsWith('http://') || url.startsWith('https://');
     
-    // Check for data URIs or very long URLs (often problematic)
-    const isSuspiciousUrl = 
-      url.startsWith('data:') || 
-      url.length > 500 ||
-      problematicDomains.some(domain => url.includes(domain));
-    
-    return hasImageExtension && !isSuspiciousUrl;
-  } catch (error) {
+    return isValidUrl && (hasImageExtension || lowerUrl.includes('image'));
+  } catch (e) {
     return false;
   }
 };
@@ -256,4 +279,152 @@ const searchNews = async (req, res) => {
   }
 };
 
-module.exports = { searchNews }; 
+/**
+ * Extract relevant topics from user browsing history using OpenAI
+ * @param {Array} historyItems - User's browsing history items
+ * @returns {Array} Array of relevant topics for news search
+ */
+const extractTopicsFromHistory = async (historyItems) => {
+  try {
+    // Limit to most recent 50 history items to avoid token limits
+    const recentItems = [...historyItems]
+      .sort((a, b) => new Date(b.lastVisitTime) - new Date(a.lastVisitTime))
+      .slice(0, 50);
+    
+    // Format history data for OpenAI
+    const historyData = recentItems.map(item => ({
+      url: item.url,
+      title: item.title || 'No Title'
+    }));
+    
+    // Use OpenAI to extract relevant topics
+    const response = await openai.chat.completions.create({
+      model: "gpt-3.5-turbo",
+      messages: [
+        {
+          role: "system",
+          content: `You are an expert news recommendation system. 
+          Analyze the user's browsing history and extract 5-7 specific topics that would make good news search queries. 
+          Focus on extracting current interests, events, people, or technologies the user has shown interest in.
+          Return ONLY raw JSON without markdown formatting, code blocks, or any explanatory text.`
+        },
+        {
+          role: "user",
+          content: `Analyze this browsing history and identify 5-7 specific topics that would make good news search queries.
+          
+          Return your results in this JSON format:
+          {
+            "topics": [
+              {
+                "query": "specific search query",
+                "relevance": 0-10 score,
+                "category": "general category (tech, sports, entertainment, etc.)",
+                "explanation": "brief explanation of why this is relevant to the user"
+              }
+            ],
+            "primaryInterests": ["interest1", "interest2"]
+          }
+          
+          Here is the browsing history data:
+          ${JSON.stringify(historyData, null, 2)}`
+        }
+      ],
+      temperature: 0.7,
+    });
+    
+    // Parse the response
+    const result = safeJSONParse(response.choices[0].message.content);
+    return result;
+  } catch (error) {
+    console.error('Error extracting topics from history:', error);
+    // Fallback to default topics if OpenAI fails
+    return {
+      topics: [
+        { query: "technology news", relevance: 8, category: "technology" },
+        { query: "world news today", relevance: 7, category: "news" }
+      ],
+      primaryInterests: ["General News", "Technology"]
+    };
+  }
+};
+
+/**
+ * Controller to get personalized news recommendations based on user's browsing history
+ */
+const getRecommendedNews = async (req, res) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+    
+    const userId = req.user._id;
+    const cacheKey = `news-recommendations-${userId}`;
+    
+    // Check if we have cached recommendations
+    const cachedResults = cache.get(cacheKey);
+    if (cachedResults) {
+      console.log(`Returning cached news recommendations for user: ${userId}`);
+      return res.json(cachedResults);
+    }
+    
+    // Get user's browsing history
+    const userHistory = await BrowsingHistory.findOne({ user: userId });
+    
+    if (!userHistory || userHistory.history.length === 0) {
+      return res.status(404).json({ 
+        error: 'No browsing history available for recommendations',
+        recommendations: [] 
+      });
+    }
+    
+    // Extract topics from browsing history
+    const topicsResult = await extractTopicsFromHistory(userHistory.history);
+    
+    // Get top topics sorted by relevance
+    const sortedTopics = topicsResult.topics.sort((a, b) => b.relevance - a.relevance);
+    
+    // Get news for each topic (limit to top 3 topics)
+    const topicPromises = sortedTopics.slice(0, 3).map(async (topic) => {
+      try {
+        const newsResults = await fetchNewsFromNewsAPI(topic.query);
+        const formattedArticles = formatNewsApiArticles(newsResults.articles).slice(0, 5); // Limit to 5 articles per topic
+        
+        return {
+          topic: topic.query,
+          category: topic.category,
+          explanation: topic.explanation,
+          articles: formattedArticles
+        };
+      } catch (error) {
+        console.error(`Error fetching news for topic ${topic.query}:`, error);
+        return {
+          topic: topic.query,
+          category: topic.category,
+          explanation: topic.explanation,
+          articles: [],
+          error: error.message
+        };
+      }
+    });
+    
+    // Wait for all topic news to be fetched
+    const topicNews = await Promise.all(topicPromises);
+    
+    // Construct the response
+    const recommendations = {
+      timestamp: new Date().toISOString(),
+      primaryInterests: topicsResult.primaryInterests,
+      recommendedTopics: topicNews.filter(topic => topic.articles.length > 0)
+    };
+    
+    // Cache the results
+    cache.set(cacheKey, recommendations, 30 * 60); // Cache for 30 minutes
+    
+    return res.json(recommendations);
+  } catch (error) {
+    console.error('Error getting news recommendations:', error);
+    return res.status(500).json({ error: error.message || 'Error fetching news recommendations' });
+  }
+};
+
+module.exports = { searchNews, getRecommendedNews }; 

@@ -9,6 +9,38 @@ const openai = new OpenAI({
 });
 
 /**
+ * Helper function to safely parse JSON from OpenAI responses
+ * @param {string} text - Text from OpenAI that might contain JSON
+ * @returns {Object} Parsed JSON object
+ */
+const safeJSONParse = (text) => {
+  try {
+    // First attempt direct parsing
+    return JSON.parse(text);
+  } catch (error) {
+    try {
+      // Check if response is wrapped in markdown code blocks
+      if (text.includes('```json') || text.includes('```')) {
+        // Extract content between code blocks
+        let jsonContent = text.replace(/^```json\s+/, '').replace(/^```\s+/, '').replace(/\s+```$/, '');
+        return JSON.parse(jsonContent);
+      }
+      
+      // Try to find JSON-like content in the text
+      const jsonMatch = text.match(/(\{[\s\S]*\})/);
+      if (jsonMatch && jsonMatch[0]) {
+        return JSON.parse(jsonMatch[0]);
+      }
+      
+      throw new Error('Could not parse JSON from response');
+    } catch (innerError) {
+      console.error('JSON parsing error:', innerError);
+      throw new Error(`Failed to parse JSON: ${innerError.message}`);
+    }
+  }
+};
+
+/**
  * Main function to analyze user browsing history
  * @param {string} userId - User ID to analyze
  * @returns {Object} Analysis results
@@ -31,7 +63,8 @@ const analyzeUserHistory = async (userId) => {
       analyzeDomainFrequency(historyItems),
       analyzeTopicCategories(historyItems),
       analyzeContentTypes(historyItems),
-      analyzeUserBehaviorPatterns(historyItems)
+      analyzeUserBehaviorPatterns(historyItems),
+      analyzeUserBehaviorDetails(historyItems)
     ]);
     
     // Combine all results
@@ -42,7 +75,8 @@ const analyzeUserHistory = async (userId) => {
       domainFrequency: results[1],
       topicCategories: results[2],
       contentTypes: results[3],
-      behaviorPatterns: results[4]
+      behaviorPatterns: results[4],
+      behaviorDetails: results[5]
     };
   } catch (error) {
     console.error('Error analyzing user history:', error);
@@ -162,11 +196,11 @@ const analyzeTopicCategories = async (historyItems) => {
   // Use OpenAI API to categorize the URLs
   try {
     const response = await openai.chat.completions.create({
-      model: "gpt-4",
+      model: "gpt-3.5-turbo", // Use gpt-3.5-turbo instead of gpt-4 to reduce token usage
       messages: [
         {
           role: "system",
-          content: "You are an expert at analyzing web browsing behavior. Your task is to categorize URLs and their titles into topics and analyze the user's interests based on their browsing history."
+          content: "You are an expert at analyzing web browsing behavior. Your task is to categorize URLs and their titles into topics and analyze the user's interests based on their browsing history. Return ONLY raw JSON without markdown formatting, code blocks, or any explanatory text."
         },
         {
           role: "user",
@@ -191,12 +225,11 @@ const analyzeTopicCategories = async (historyItems) => {
           ${JSON.stringify(urlsWithTitles, null, 2)}`
         }
       ],
-      response_format: { type: "json_object" },
       temperature: 0.5,
     });
     
-    // Parse the response
-    const analysisResult = JSON.parse(response.choices[0].message.content);
+    // Parse the response with safe parsing
+    const analysisResult = safeJSONParse(response.choices[0].message.content);
     
     // Add category icons for visualization
     const categoryIcons = {
@@ -491,6 +524,103 @@ const analyzeUserBehaviorPatterns = async (historyItems) => {
     },
     commonPathways: frequentPathways.slice(0, 3)
   };
+};
+
+/**
+ * Analyze detailed user behavior and habits using OpenAI's NLP
+ * @param {Array} historyItems - Array of browsing history items
+ * @returns {Object} Detailed behavior analysis
+ */
+const analyzeUserBehaviorDetails = async (historyItems) => {
+  try {
+    // Select up to 50 most recent items (reduced from 100) for detailed analysis to avoid rate limits
+    const recentItems = [...historyItems]
+      .sort((a, b) => new Date(b.lastVisitTime) - new Date(a.lastVisitTime))
+      .slice(0, 50);
+    
+    // Prepare data for OpenAI analysis - include more context but limit detail to reduce token usage
+    const historyData = recentItems.map(item => ({
+      url: item.url,
+      title: item.title || 'No Title',
+      visitCount: item.visitCount || 1
+      // Removed lastVisitTime to reduce token count
+    }));
+    
+    // Use OpenAI for detailed behavioral analysis with gpt-3.5-turbo for lower token usage
+    const response = await openai.chat.completions.create({
+      model: "gpt-3.5-turbo", // Use gpt-3.5-turbo instead of gpt-4 to avoid rate limits
+      messages: [
+        {
+          role: "system",
+          content: `You are an expert in digital behavior analysis, psychology, and user patterns.
+          Your task is to perform a detailed analysis of a user's browsing history to identify:
+          
+          1. Behavioral patterns and habits
+          2. Content preferences and interests
+          3. Potential digital wellbeing insights
+          4. Learning interests and knowledge-seeking behavior
+          5. Entertainment preferences
+          
+          Provide nuanced insights that go beyond basic categorization.
+          Return ONLY the raw JSON without any markdown formatting, code blocks, or explanatory text.`
+        },
+        {
+          role: "user",
+          content: `Analyze the following browsing history data in detail and provide rich insights about the user's behavior, habits, and potential digital wellbeing tips. 
+          
+          Return your analysis as a structured JSON object with the following structure:
+          {
+            "behavioralPatterns": {
+              "contentPreferences": ["preference1", "preference2"],
+              "timeUsageHabits": "detailed analysis",
+              "attentionPatterns": "analysis of focus and switching",
+              "recursiveInterests": ["interest1", "interest2"]
+            },
+            "contentInsights": {
+              "primaryTopics": ["topic1", "topic2"],
+              "secondaryTopics": ["topic3", "topic4"],
+              "contentDepth": "analysis of shallow vs deep engagement",
+              "varietyScore": 7
+            },
+            "digitalWellbeing": {
+              "potentialChallenges": ["challenge1", "challenge2"],
+              "healthyPatterns": ["pattern1", "pattern2"],
+              "recommendations": ["tip1", "tip2"]
+            },
+            "learningBehavior": {
+              "knowledgeSeeking": "assessment of learning patterns",
+              "depthOfResearch": "shallow to deep scale",
+              "educationalEngagement": "analysis of educational content",
+              "skillDevelopment": ["potential skill1", "potential skill2"]
+            },
+            "keywordAnalysis": {
+              "frequentTerms": ["term1", "term2"],
+              "semanticTopics": ["topic1", "topic2"]
+            },
+            "insightSummary": "A detailed paragraph summarizing the most interesting and useful insights about this user's digital behavior"
+          }
+          
+          Here is the browsing history data:
+          ${JSON.stringify(historyData, null, 2)}`
+        }
+      ],
+      temperature: 0.7,
+      max_tokens: 1500 // Reduced from 2000 to prevent too large responses
+    });
+    
+    // Parse the response with safe parsing
+    const behaviorInsights = safeJSONParse(response.choices[0].message.content);
+    
+    // Add any additional processing here if needed
+    
+    return behaviorInsights;
+  } catch (error) {
+    console.error('Error analyzing user behavior details:', error);
+    return {
+      error: 'Failed to analyze behavior details',
+      message: error.message
+    };
+  }
 };
 
 /**
@@ -904,5 +1034,6 @@ module.exports = {
   analyzeDomainFrequency,
   analyzeTopicCategories,
   analyzeContentTypes,
-  analyzeUserBehaviorPatterns
+  analyzeUserBehaviorPatterns,
+  analyzeUserBehaviorDetails
 }; 

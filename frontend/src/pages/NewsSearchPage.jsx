@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import '../styles/NewsSearchPage.css';
 import defaultNewsImage from '../assets/default-news.js';
 
@@ -11,6 +11,9 @@ const NewsSearchPage = () => {
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [searchStartTime, setSearchStartTime] = useState(null);
   const [lastUpdated, setLastUpdated] = useState(null);
+  const [recommendations, setRecommendations] = useState(null);
+  const [loadingRecommendations, setLoadingRecommendations] = useState(false);
+  const [recommendationError, setRecommendationError] = useState(null);
   
   // Popular topics for suggested searches
   const popularTopics = [
@@ -20,6 +23,50 @@ const NewsSearchPage = () => {
   
   // Track last searched queries for quick re-search
   const [recentSearches, setRecentSearches] = useState([]);
+  
+  // Ref to track if component is mounted
+  const isMounted = useRef(true);
+  
+  // Fetch personalized recommendations on component mount
+  useEffect(() => {
+    fetchRecommendations();
+    
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
+  
+  // Fetch personalized news recommendations based on browsing history
+  const fetchRecommendations = async () => {
+    setLoadingRecommendations(true);
+    setRecommendationError(null);
+    
+    try {
+      const response = await fetch('http://localhost:5000/news/recommended', {
+        method: 'GET',
+        credentials: 'include'
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Error: ${response.status} ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      
+      if (isMounted.current) {
+        setRecommendations(data);
+      }
+    } catch (err) {
+      console.error('Error fetching recommendations:', err);
+      if (isMounted.current) {
+        setRecommendationError(`Failed to load recommendations: ${err.message}`);
+      }
+    } finally {
+      if (isMounted.current) {
+        setLoadingRecommendations(false);
+      }
+    }
+  };
   
   useEffect(() => {
     let interval;
@@ -125,6 +172,14 @@ const NewsSearchPage = () => {
     }, 0);
   };
   
+  // Use a recommendation topic as a search query
+  const handleRecommendationClick = (topic) => {
+    setSearchQuery(topic);
+    setTimeout(() => {
+      handleSearch();
+    }, 0);
+  };
+
   // Format date for display with relative time if recent
   const formatDate = (dateString) => {
     if (!dateString) return '';
@@ -212,7 +267,7 @@ const NewsSearchPage = () => {
     );
   };
   
-  // Check if the article is recent (published after Jan 1, 2025)
+  // Check if an article is recent (published within the last 48 hours)
   const isRecentArticle = (dateString) => {
     if (!dateString) return false;
     
@@ -220,105 +275,196 @@ const NewsSearchPage = () => {
       const date = new Date(dateString);
       if (isNaN(date.getTime())) return false;
       
-      // Jan 1, 2025
-      const jan2025 = new Date(2025, 0, 1);
-      return date >= jan2025;
+      const now = new Date();
+      const diffInHours = Math.abs(now - date) / 36e5; // Convert ms to hours
+      
+      return diffInHours < 48;
     } catch {
       return false;
     }
   };
   
+  // Render personalized recommendations section
+  const renderRecommendations = () => {
+    if (loadingRecommendations) {
+      return (
+        <div className="recommendations-loading">
+          <div className="loading-spinner"></div>
+          <p>Loading personalized recommendations...</p>
+        </div>
+      );
+    }
+    
+    if (recommendationError) {
+      return (
+        <div className="recommendations-error">
+          <p>{recommendationError}</p>
+          <button onClick={fetchRecommendations} className="retry-button">
+            Retry
+          </button>
+        </div>
+      );
+    }
+    
+    if (!recommendations || !recommendations.recommendedTopics || recommendations.recommendedTopics.length === 0) {
+      return (
+        <div className="no-recommendations">
+          <p>No personalized recommendations available yet. Browse more websites to improve recommendations.</p>
+        </div>
+      );
+    }
+    
+    return (
+      <div className="recommendations-container">
+        <h2>Personalized Recommendations</h2>
+        <p className="recommendations-description">
+          Based on your browsing history, we recommend these topics:
+        </p>
+        
+        <div className="recommendation-topics">
+          {recommendations.primaryInterests?.map((interest, index) => (
+            <span key={index} className="interest-tag">{interest}</span>
+          ))}
+        </div>
+        
+        {recommendations.recommendedTopics.map((topicData, index) => (
+          <div key={index} className="recommendation-section">
+            <div className="recommendation-header">
+              <h3>{topicData.topic}</h3>
+              <span className="category-tag">{topicData.category}</span>
+              <button 
+                className="view-more-btn" 
+                onClick={() => handleRecommendationClick(topicData.topic)}
+              >
+                View more
+              </button>
+            </div>
+            
+            <p className="recommendation-explanation">{topicData.explanation}</p>
+            
+            <div className="recommendation-articles">
+              {topicData.articles.slice(0, 3).map((article, articleIndex) => (
+                <div key={articleIndex} className="recommendation-article">
+                  <div className="article-image-container">
+                    <img 
+                      src={article.imageUrl} 
+                      alt={article.title}
+                      onError={handleImageError}
+                      className="article-image"
+                    />
+                    {isRecentArticle(article.publishedDate) && (
+                      <span className="recent-tag">New</span>
+                    )}
+                  </div>
+                  <div className="article-content">
+                    <h4 className="article-title">
+                      <a 
+                        href={article.url} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                      >
+                        {article.title}
+                      </a>
+                    </h4>
+                    <div className="article-meta">
+                      <span className="source">{article.source}</span>
+                      <span className="date">{formatDate(article.publishedDate)}</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  };
+  
   return (
     <div className="news-search-page">
-      <header className="news-search-header">
-        <h1>Latest News Search</h1>
-        <p>Search for the latest news articles from reliable sources</p>
-      </header>
+      <h1>News Search</h1>
       
       <div className="search-container">
         <form onSubmit={handleSearch} className="search-form">
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Enter a news topic (e.g., 'climate change', 'technology', 'sports')"
-            className="search-input"
-          />
-          <button 
-            type="submit" 
-            className="search-button"
-            disabled={isLoading}
-          >
-            {isLoading ? 'Searching...' : 'Search'}
-          </button>
+          <div className="search-input-container">
+            <input
+              type="text"
+              className="search-input"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search for news topics..."
+            />
+            <button 
+              type="submit" 
+              className="search-button"
+              disabled={isLoading}
+            >
+              {isLoading ? 'Searching...' : 'Search'}
+            </button>
+          </div>
         </form>
         
-        {error && <div className="error-message">{error}</div>}
-        
-        {recentSearches.length > 0 && (
-          <div className="recent-searches">
-            <span>Recent:</span>
-            {recentSearches.map((query, index) => (
-              <button 
-                key={index} 
-                className="recent-search-btn"
-                onClick={() => handleRecentSearchClick(query)}
-                disabled={isLoading}
-              >
-                {query}
-              </button>
-            ))}
+        {isLoading && (
+          <div className="progress-container">
+            <div 
+              className="progress-bar" 
+              style={{ width: `${loadingProgress}%` }}
+            ></div>
           </div>
         )}
       </div>
       
-      <div className="news-results-container">
-        {isLoading ? (
-          <div className="loading-container">
-            <div className="progress-container">
-              <div 
-                className="progress-bar" 
-                style={{ width: `${loadingProgress}%` }}
-              ></div>
-            </div>
-            <div className="loading-spinner"></div>
-            <p className="loading-message">
-              {loadingProgress < 30 ? 'Contacting news sources...' : 
-               loadingProgress < 60 ? 'Finding the latest articles...' : 
-               loadingProgress < 90 ? 'Preparing your results...' : 
-               'Almost ready...'}
-            </p>
-            <p className="loading-tip">
-              News results are cached for 5 minutes. Repeat searches will load much faster!
-            </p>
-          </div>
-        ) : !searching ? (
-          <div className="start-search-prompt">
-            <div className="prompt-icon">🔍</div>
-            <h2>Enter a topic to get started</h2>
-            <p>Get the latest news from reliable sources</p>
-            
-            <div className="suggested-topics">
-              <h3>Popular Topics</h3>
-              <div className="topic-buttons">
-                {popularTopics.map((topic, index) => (
-                  <button
-                    key={index}
-                    className="topic-button"
-                    onClick={() => handleSuggestedTopicClick(topic)}
-                  >
-                    {topic}
-                  </button>
-                ))}
-              </div>
+      <div className="search-suggestions">
+        {recentSearches.length > 0 && (
+          <div className="recent-searches">
+            <h3>Recent Searches</h3>
+            <div className="topic-tags">
+              {recentSearches.map((query, index) => (
+                <button 
+                  key={index}
+                  className="topic-tag"
+                  onClick={() => handleRecentSearchClick(query)}
+                >
+                  {query}
+                </button>
+              ))}
             </div>
           </div>
-        ) : newsResults.length === 0 ? (
+        )}
+        
+        <div className="popular-topics">
+          <h3>Popular Topics</h3>
+          <div className="topic-tags">
+            {popularTopics.map((topic, index) => (
+              <button 
+                key={index}
+                className="topic-tag"
+                onClick={() => handleSuggestedTopicClick(topic)}
+              >
+                {topic}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+      
+      {!searching && !isLoading && (
+        <div className="recommended-section">
+          {renderRecommendations()}
+        </div>
+      )}
+      
+      <div className="results-container">
+        {error && <div className="error-message">{error}</div>}
+        
+        {searching && newsResults.length === 0 && !isLoading && !error && (
           <div className="no-results">
-            <h2>No news found</h2>
-            <p>Try a different search term or check back later</p>
+            <p>No results found for "{searchQuery}"</p>
+            <p>Try different keywords or browse our suggestions above.</p>
           </div>
-        ) : (
+        )}
+        
+        {searching && newsResults.length > 0 && (
           <>
             <div className="results-meta">
               <div className="api-source">
@@ -351,48 +497,35 @@ const NewsSearchPage = () => {
               </button>
             </div>
             
-            <div className="news-articles">
+            <div className="news-results">
               {newsResults.map((article, index) => (
-                <div 
-                  className={`news-article-card ${isRecentArticle(article.publishedDate) ? 'recent-article' : ''}`} 
-                  key={index}
-                >
-                  {article.imageUrl ? (
-                    <div className="article-image">
-                      <img 
-                        src={article.imageUrl} 
-                        alt={article.title}
-                        onError={handleImageError}
-                      />
-                    </div>
-                  ) : renderImageFallback(article)}
-                  
+                <div key={index} className="news-article">
+                  <div className="article-image-container">
+                    <img 
+                      src={article.imageUrl} 
+                      alt={article.title}
+                      onError={handleImageError}
+                      className="article-image"
+                    />
+                    {isRecentArticle(article.publishedDate) && (
+                      <span className="recent-tag">New</span>
+                    )}
+                  </div>
                   <div className="article-content">
+                    <h2 className="article-title">
+                      <a 
+                        href={article.url} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                      >
+                        {article.title}
+                      </a>
+                    </h2>
                     <div className="article-meta">
-                      {article.source && (
-                        <p className="article-source">
-                          {article.source}
-                          {article.publishedDate && (
-                            <span className="article-date">
-                              {formatDate(article.publishedDate)}
-                            </span>
-                          )}
-                        </p>
-                      )}
+                      <span className="source">{article.source}</span>
+                      <span className="date">{formatDate(article.publishedDate)}</span>
                     </div>
-                    
-                    <h3 className="article-title">
-                      {article.url ? (
-                        <a href={article.url} target="_blank" rel="noopener noreferrer">
-                          {article.title}
-                        </a>
-                      ) : (
-                        article.title
-                      )}
-                    </h3>
-                    
                     <p className="article-summary">{article.summary}</p>
-                    
                     {article.url && (
                       <a 
                         href={article.url} 
@@ -414,4 +547,4 @@ const NewsSearchPage = () => {
   );
 };
 
-export default NewsSearchPage; 
+export default NewsSearchPage;

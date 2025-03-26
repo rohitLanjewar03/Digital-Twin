@@ -495,4 +495,229 @@
   .news-articles {
     grid-template-columns: 1fr;
   }
+}
+
+/* Recommended News Section */
+.recommended-section {
+  margin: 30px 0;
+  padding: 20px;
+  background-color: #f8f9fd;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.recommendations-container h2 {
+  font-size: 1.8rem;
+  margin-bottom: 15px;
+  color: #2d3748;
+  border-bottom: 2px solid #4285f4;
+  padding-bottom: 8px;
+  display: inline-block;
+}
+
+.recommendations-description {
+  color: #4a5568;
+  margin-bottom: 20px;
+  font-size: 1rem;
+}
+
+.recommendation-topics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 25px;
+}
+
+.interest-tag {
+  background-color: #e5edff;
+  color: #3b82f6;
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.recommendation-section {
+  margin-bottom: 30px;
+  padding: 15px;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.recommendation-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.recommendation-header h3 {
+  margin: 0;
+  font-size: 1.4rem;
+  color: #2d3748;
+}
+
+.category-tag {
+  background-color: #f0f5ff;
+  color: #1a56db;
+  padding: 3px 10px;
+  border-radius: 15px;
+  font-size: 0.8rem;
+  text-transform: capitalize;
+}
+
+.view-more-btn {
+  margin-left: auto;
+  background-color: #4285f4;
+  color: white;
+  border: none;
+  padding: 5px 15px;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background-color 0.2s;
+}
+
+.view-more-btn:hover {
+  background-color: #3367d6;
+}
+
+.recommendation-explanation {
+  color: #4a5568;
+  margin-bottom: 15px;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.recommendation-articles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+.recommendation-article {
+  display: flex;
+  flex-direction: column;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+  background-color: white;
+  transition: transform 0.2s, box-shadow 0.2s;
+  height: 100%;
+}
+
+.recommendation-article:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.recommendation-article .article-image-container {
+  position: relative;
+  height: 160px;
+  overflow: hidden;
+}
+
+.recommendation-article .article-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.recommendation-article .recent-tag {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background-color: #e53e3e;
+  color: white;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 0.7rem;
+  font-weight: bold;
+}
+
+.recommendation-article .article-content {
+  padding: 15px;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.recommendation-article .article-title {
+  margin: 0 0 10px 0;
+  font-size: 1rem;
+  line-height: 1.4;
+}
+
+.recommendation-article .article-title a {
+  color: #2d3748;
+  text-decoration: none;
+}
+
+.recommendation-article .article-title a:hover {
+  color: #4285f4;
+  text-decoration: underline;
+}
+
+.recommendation-article .article-meta {
+  display: flex;
+  justify-content: space-between;
+  color: #718096;
+  font-size: 0.8rem;
+  margin-top: auto;
+}
+
+.recommendations-loading, 
+.recommendations-error,
+.no-recommendations {
+  padding: 30px;
+  text-align: center;
+  color: #4a5568;
+}
+
+.recommendations-loading .loading-spinner {
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #4285f4;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 15px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.recommendations-error .retry-button {
+  padding: 8px 16px;
+  background-color: #4285f4;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  margin-top: 15px;
+  cursor: pointer;
+}
+
+.recommendations-error .retry-button:hover {
+  background-color: #3367d6;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .recommendation-articles {
+    grid-template-columns: 1fr;
+  }
+  
+  .recommendation-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .view-more-btn {
+    margin-left: 0;
+    margin-top: 10px;
+  }
 } 
