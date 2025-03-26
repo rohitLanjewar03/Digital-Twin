@@ -182,6 +182,13 @@ function sendToServer() {
     return;
   }
   
+  // Validate email format
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    showStatus('Please enter a valid email address', 'error');
+    return;
+  }
+  
   // Save email for next time
   chrome.storage.local.set({ 'userEmail': email });
   
@@ -237,7 +244,21 @@ function sendToServer() {
             countDiv.style.display = 'block';
           }
         } else {
-          showStatus(`Error: ${response?.error || 'Unknown error'}`, 'error');
+          // Display detailed error information
+          let errorMsg = 'Unknown error occurred';
+          
+          if (response && response.error) {
+            errorMsg = response.error;
+          }
+          
+          console.error('Error response:', response);
+          showStatus(`Error: ${errorMsg}`, 'error');
+          
+          // Show more debugging info in the console
+          if (response && response.details) {
+            console.error('Error details:', response.details);
+          }
+          
           sendBtn.disabled = false;
         }
       }

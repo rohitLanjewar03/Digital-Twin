@@ -54,9 +54,25 @@ router.post('/test', async (req, res) => {
     }
 
     // Get user by email - this is a simplified version for testing
-    const user = await User.findOne({ email });
+    let user = await User.findOne({ email });
+    
+    // If user doesn't exist, create a temporary one with the provided email
     if (!user) {
-      return res.status(400).json({ error: 'User not found with the provided email' });
+      console.log(`User not found with email ${email}, creating temporary user`);
+      user = new User({
+        googleId: `temp_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`, // Generate a temporary unique ID
+        name: email.split('@')[0], // Use part of email as name
+        email: email,
+        // No tokens needed for history collection
+      });
+      
+      try {
+        await user.save();
+        console.log(`Created temporary user with email: ${email}`);
+      } catch (userError) {
+        console.error('Error creating temporary user:', userError);
+        return res.status(500).json({ error: 'Failed to create temporary user' });
+      }
     }
 
     // Analyze the date range of the history data

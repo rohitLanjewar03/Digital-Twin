@@ -108,7 +108,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 });
 
 // Function to send chunks of history data sequentially
-async function sendChunksSequentially(chunks, startIndex, apiEndpoint, userEmail) {
+async function sendChunksSequentially(chunks, startIndex, apiEndpoint, userEmail, retryCount = 0) {
+  const MAX_RETRIES = 3;
+  
   if (startIndex >= chunks.length) {
     return []; // All chunks sent
   }
@@ -146,7 +148,26 @@ async function sendChunksSequentially(chunks, startIndex, apiEndpoint, userEmail
     console.log(`Chunk ${startIndex + 1} response status:`, response.status);
     
     if (!response.ok) {
-      throw new Error(`Network response was not ok for chunk ${startIndex + 1}: ${response.status}`);
+      // Get the error message if possible
+      let errorMessage = `Server responded with ${response.status}`;
+      try {
+        const errorData = await response.json();
+        if (errorData && errorData.error) {
+          errorMessage = errorData.error;
+        }
+      } catch (e) {
+        // Ignore JSON parsing errors
+      }
+      
+      // If we have retries left, try again
+      if (retryCount < MAX_RETRIES) {
+        console.log(`Retrying chunk ${startIndex + 1} (attempt ${retryCount + 1}/${MAX_RETRIES})`);
+        // Add a longer delay for retries
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        return sendChunksSequentially(chunks, startIndex, apiEndpoint, userEmail, retryCount + 1);
+      }
+      
+      throw new Error(`Network response was not ok for chunk ${startIndex + 1}: ${errorMessage}`);
     }
     
     const data = await response.json();
@@ -160,6 +181,16 @@ async function sendChunksSequentially(chunks, startIndex, apiEndpoint, userEmail
     return [data, ...remainingResults];
   } catch (error) {
     console.error(`Error sending chunk ${startIndex + 1}:`, error);
+    
+    // If we have retries left, try again after a delay
+    if (retryCount < MAX_RETRIES) {
+      console.log(`Retrying chunk ${startIndex + 1} after error (attempt ${retryCount + 1}/${MAX_RETRIES})`);
+      // Exponential backoff for retries
+      const delay = 1000 * Math.pow(2, retryCount);
+      await new Promise(resolve => setTimeout(resolve, delay));
+      return sendChunksSequentially(chunks, startIndex, apiEndpoint, userEmail, retryCount + 1);
+    }
+    
     throw error;
   }
 }
