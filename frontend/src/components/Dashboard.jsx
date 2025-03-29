@@ -501,7 +501,7 @@ const Dashboard = () => {
                                     <strong>From:</strong> {email.from}
                                     {isNoReplyEmail(email.from) && (
                                         <span style={{ 
-                                            marginLeft: '10px', 
+                                            marginLeft: '600px', 
                                             backgroundColor: 'var(--warning-color)', 
                                             padding: '3px 6px', 
                                             borderRadius: '3px',
@@ -577,14 +577,15 @@ const Dashboard = () => {
                                     <div style={{ marginTop: '10px' }}>
                                         <button 
                                             onClick={() => handleMarkAsRead(email.id)}
-                                            style={{ marginRight: '5px' }}
+                                            style={{ marginRight: '5px', color: 'white' }}
                                         >
                                             Mark as Read
                                         </button>
                                         {!isNoReplyEmail(email.from) ? (
                                             <button 
                                                 onClick={() => handleReplyClick(email.id)}
-                                                style={{ marginRight: '5px' }}
+                                                style={{ marginRight: '5px', color: 'white' }}
+                                            disabled={replyingTo === email.id}  
                                             >
                                                 Reply
                                             </button>
@@ -595,7 +596,8 @@ const Dashboard = () => {
                                                 style={{ 
                                                     opacity: 0.5, 
                                                     cursor: 'not-allowed',
-                                                    marginRight: '5px'
+                                                    marginRight: '5px',
+                                                    color: 'white'
                                                 }}
                                             >
                                                 Reply
