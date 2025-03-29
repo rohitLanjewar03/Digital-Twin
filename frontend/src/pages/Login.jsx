@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/useAuth';
+import LandingPage from '../assets/LandingPage.mp4'; // Import the video
 
 const Login = () => {
   const { user, loading } = useAuth();
@@ -22,17 +23,27 @@ const Login = () => {
   }
 
   return (
-    <div className="h-screen flex items-center justify-center">
-      <div className="text-center">
-        <h1 className="text-2xl font-bold mb-6">Email Assistant</h1>
-        <button 
-          className="bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600 transition-colors" 
-          onClick={handleGoogleLogin}
-        >
-          Login with Google
-        </button>
-      </div>
+    <div className="h-screen flex flex-col items-center justify-center bg-black relative">
+    {/* Login Button (top-right) */}
+    <button 
+      className="absolute top-4 right-4 text-white px-4 py-2 border-2 border-gray-500 rounded-lg 
+                hover:bg-blue-600 transition-colors z-10"
+      onClick={handleGoogleLogin}
+    >
+      Login
+    </button>
+  
+    {/* Video Container (centered with max-width/max-height) */}
+    <div className="w-full max-w-7xl p-4"> {/* Adjust max-w as needed */}
+      <video 
+        src={LandingPage}
+        autoPlay
+        muted
+        playsInline
+        className="w-full h-auto rounded-2xl shadow-xl"
+      />
     </div>
+  </div>
   );
 };
 
