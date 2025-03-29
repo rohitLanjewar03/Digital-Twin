@@ -1,5 +1,5 @@
 const express = require('express');
-const { searchNews, getRecommendedNews } = require('../controllers/newsController');
+const { searchNews, getRecommendedNews, summarizeArticle } = require('../controllers/newsController');
 const { isAuthenticated } = require('../middleware/authMiddleware');
 
 const router = express.Router();
@@ -12,4 +12,8 @@ router.post('/search', isAuthenticated, searchNews);
 // GET /news/recommended
 router.get('/recommended', isAuthenticated, getRecommendedNews);
 
-module.exports = router; 
+// Route to get AI summary of a news article
+// POST /news/summarize
+router.post('/summarize', isAuthenticated, summarizeArticle);
+
+module.exports = router;

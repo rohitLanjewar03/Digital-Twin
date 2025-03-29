@@ -383,8 +383,8 @@ const getRecommendedNews = async (req, res) => {
     // Get top topics sorted by relevance
     const sortedTopics = topicsResult.topics.sort((a, b) => b.relevance - a.relevance);
     
-    // Get news for each topic (limit to top 3 topics)
-    const topicPromises = sortedTopics.slice(0, 3).map(async (topic) => {
+    // Get news for each topic
+    const topicPromises = sortedTopics.map(async (topic) => {
       try {
         const newsResults = await fetchNewsFromNewsAPI(topic.query);
         const formattedArticles = formatNewsApiArticles(newsResults.articles).slice(0, 5); // Limit to 5 articles per topic
@@ -427,4 +427,69 @@ const getRecommendedNews = async (req, res) => {
   }
 };
 
-module.exports = { searchNews, getRecommendedNews }; 
+// Function to summarize a news article using OpenAI
+const summarizeArticle = async (req, res) => {
+  try {
+    const { url, title, content } = req.body;
+    
+    if (!url || (!content && !title)) {
+      return res.status(400).json({ error: 'URL and either content or title are required for summarization' });
+    }
+    
+    // Create a cache key based on the URL
+    const cacheKey = `article-summary-${url}`;
+    const cachedSummary = cache.get(cacheKey);
+    
+    if (cachedSummary) {
+      console.log(`Returning cached summary for article: ${url}`);
+      return res.json(cachedSummary);
+    }
+    
+    console.log(`Generating AI summary for article: ${url}`);
+    
+    // Prepare the content for summarization
+    const textToSummarize = content || title;
+    
+    // Use OpenAI to generate a summary
+    const response = await openai.chat.completions.create({
+      model: "gpt-3.5-turbo",
+      messages: [
+        {
+          role: "system",
+          content: `You are a helpful assistant that summarizes news articles. 
+          Provide a concise, informative summary that captures the key points of the article.
+          Include the main topic, key facts, and any significant conclusions or implications.
+          Keep the summary to 3-4 paragraphs maximum.`
+        },
+        {
+          role: "user",
+          content: `Please summarize the following news article:
+          
+          Title: ${title || 'News Article'}
+          URL: ${url}
+          
+          Content: ${textToSummarize}`
+        }
+      ],
+      temperature: 0.5,
+    });
+    
+    const summary = {
+      summary: response.choices[0].message.content,
+      url: url,
+      title: title,
+      timestamp: new Date().toISOString()
+    };
+    
+    // Cache the summary for 24 hours
+    cache.set(cacheKey, summary, 24 * 60 * 60);
+    
+    return res.json(summary);
+    
+  } catch (error) {
+    console.error('Error generating article summary:', error);
+    return res.status(500).json({ error: error.message || 'Error generating article summary' });
+  }
+};
+
+module.exports = { searchNews, getRecommendedNews, summarizeArticle }; 

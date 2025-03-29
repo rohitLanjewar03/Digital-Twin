@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import '../styles/NewsSearchPage.css';
 import defaultNewsImage from '../assets/default-news.js';
+import SummaryModal from '../components/SummaryModal';
 
 const NewsSearchPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -14,6 +15,13 @@ const NewsSearchPage = () => {
   const [recommendations, setRecommendations] = useState(null);
   const [loadingRecommendations, setLoadingRecommendations] = useState(false);
   const [recommendationError, setRecommendationError] = useState(null);
+  // New states for article summarization
+  const [summaries, setSummaries] = useState({});
+  const [loadingSummary, setLoadingSummary] = useState({});
+  const [summaryError, setSummaryError] = useState({});
+  // Modal state
+  const [modalOpen, setModalOpen] = useState(false);
+  const [currentArticle, setCurrentArticle] = useState(null);
   
   // Popular topics for suggested searches
   const popularTopics = [
@@ -180,6 +188,66 @@ const NewsSearchPage = () => {
     }, 0);
   };
 
+  // Function to request AI summary for an article
+  const handleSummarizeArticle = async (article) => {
+    // Set the current article and open the modal
+    setCurrentArticle(article);
+    setModalOpen(true);
+    
+    // Skip if we already have a summary for this article
+    if (summaries[article.url]) return;
+    
+    // Set loading state for this specific article
+    setLoadingSummary(prev => ({
+      ...prev,
+      [article.url]: true
+    }));
+    
+    // Clear any previous errors
+    setSummaryError(prev => ({
+      ...prev,
+      [article.url]: null
+    }));
+    
+    try {
+      const response = await fetch('http://localhost:5000/news/summarize', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          url: article.url,
+          title: article.title,
+          content: article.summary
+        }),
+        credentials: 'include'
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Error: ${response.status} ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      
+      // Save the summary
+      setSummaries(prev => ({
+        ...prev,
+        [article.url]: data.summary
+      }));
+    } catch (err) {
+      console.error('Error getting article summary:', err);
+      setSummaryError(prev => ({
+        ...prev,
+        [article.url]: `Failed to get summary: ${err.message}`
+      }));
+    } finally {
+      setLoadingSummary(prev => ({
+        ...prev,
+        [article.url]: false
+      }));
+    }
+  };
+
   // Format date for display with relative time if recent
   const formatDate = (dateString) => {
     if (!dateString) return '';
@@ -343,7 +411,7 @@ const NewsSearchPage = () => {
             <p className="recommendation-explanation">{topicData.explanation}</p>
             
             <div className="recommendation-articles">
-              {topicData.articles.slice(0, 3).map((article, articleIndex) => (
+              {topicData.articles.map((article, articleIndex) => (
                 <div key={articleIndex} className="recommendation-article">
                   <div className="article-image-container">
                     <img 
@@ -369,6 +437,15 @@ const NewsSearchPage = () => {
                     <div className="article-meta">
                       <span className="source">{article.source}</span>
                       <span className="date">{formatDate(article.publishedDate)}</span>
+                    </div>
+                    <div className="article-actions">
+                      <button 
+                        className="summarize-btn"
+                        onClick={() => handleSummarizeArticle(article)}
+                        disabled={loadingSummary[article.url]}
+                      >
+                        {loadingSummary[article.url] ? 'Summarizing...' : 'AI Summary'}
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -536,6 +613,15 @@ const NewsSearchPage = () => {
                         Read more →
                       </a>
                     )}
+                    <div className="article-actions">
+                      <button 
+                        className="summarize-btn"
+                        onClick={() => handleSummarizeArticle(article)}
+                        disabled={loadingSummary[article.url]}
+                      >
+                        {loadingSummary[article.url] ? 'Summarizing...' : '✨AI Summary'}
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -543,6 +629,18 @@ const NewsSearchPage = () => {
           </>
         )}
       </div>
+      
+      {modalOpen && currentArticle && (
+        <SummaryModal 
+          isOpen={modalOpen}
+          onClose={() => setModalOpen(false)}
+          title={currentArticle.title}
+          summary={summaries[currentArticle.url]}
+          isLoading={loadingSummary[currentArticle.url]}
+          error={summaryError[currentArticle.url]}
+          url={currentArticle.url}
+        />
+      )}
     </div>
   );
 };
