@@ -620,6 +620,20 @@ const Dashboard = () => {
                                                 {addingEvent ? 'Adding...' : 'Add to Calendar'}
                                             </button>
                                         )}
+                                        <button
+                                            onClick={() => window.open(`https://mail.google.com/mail/u/0/#inbox/${email.id}`, '_blank')}
+                                            style={{
+                                                backgroundColor: '#DB4437',
+                                                color: 'white',
+                                                border: 'none',
+                                                padding: '5px 10px',
+                                                borderRadius: '4px',
+                                                cursor: 'pointer',
+                                                marginRight: '5px'
+                                            }}
+                                        >
+                                            View in Gmail
+                                        </button>
                             {replyingTo === email.id && (
                                         <div style={{ marginTop: '10px' }}>
                                             <select 
