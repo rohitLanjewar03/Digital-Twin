@@ -7,55 +7,59 @@ import BrowsingHistoryAnalytics from './pages/BrowsingHistoryAnalytics.jsx';
 import Navigation from './components/Navigation.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 import { HistoryProvider } from './context/HistoryContext.jsx';
+import { ThemeProvider } from './context/ThemeContext.jsx';
+import './styles/theme.css';
 import './App.css';
 
 function App() {
   return (
-    <div className="app">
-      <HistoryProvider>
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/" element={<Navigate to="/dashboard" />} />
-          <Route path="/browsing-history" element={
-            <>
-              <Navigation />
-              <div className="content-container">
-                <BrowsingHistory />
-              </div>
-            </>
-          } />
-          <Route path="/browsing-history-analytics" element={
-            <>
-              <Navigation />
-              <div className="content-container">
-                <BrowsingHistoryAnalytics />
-              </div>
-            </>
-          } />
-          <Route path="/view-history-by-email" element={<Navigate to="/browsing-history" />} />
-          <Route path="/dashboard" element={
-            <>
-              <Navigation />
-              <div className="content-container">
-                <ProtectedRoute>
-                  <Dashboard />
-                </ProtectedRoute>
-              </div>
-            </>
-          } />
-          <Route path="/news-search" element={
-            <>
-              <Navigation />
-              <div className="content-container">
-                <ProtectedRoute>
-                  <NewsSearchPage />
-                </ProtectedRoute>
-              </div>
-            </>
-          } />
-        </Routes>
-      </HistoryProvider>
-    </div>
+    <ThemeProvider>
+      <div className="app">
+        <HistoryProvider>
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route path="/" element={<Navigate to="/dashboard" />} />
+            <Route path="/browsing-history" element={
+              <>
+                <Navigation />
+                <div className="content-container">
+                  <BrowsingHistory />
+                </div>
+              </>
+            } />
+            <Route path="/browsing-history-analytics" element={
+              <>
+                <Navigation />
+                <div className="content-container">
+                  <BrowsingHistoryAnalytics />
+                </div>
+              </>
+            } />
+            <Route path="/view-history-by-email" element={<Navigate to="/browsing-history" />} />
+            <Route path="/dashboard" element={
+              <>
+                <Navigation />
+                <div className="content-container">
+                  <ProtectedRoute>
+                    <Dashboard />
+                  </ProtectedRoute>
+                </div>
+              </>
+            } />
+            <Route path="/news-search" element={
+              <>
+                <Navigation />
+                <div className="content-container">
+                  <ProtectedRoute>
+                    <NewsSearchPage />
+                  </ProtectedRoute>
+                </div>
+              </>
+            } />
+          </Routes>
+        </HistoryProvider>
+      </div>
+    </ThemeProvider>
   );
 }
 

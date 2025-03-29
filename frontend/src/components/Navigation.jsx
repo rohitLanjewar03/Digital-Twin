@@ -1,10 +1,12 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/useAuth';
+import { useTheme } from '../context/ThemeContext';
 import '../styles/Navigation.css';
 
 const Navigation = () => {
   const location = useLocation();
   const { user, logout } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   
   const isActive = (path) => {
     return location.pathname === path ? 'active' : '';
@@ -24,6 +26,13 @@ const Navigation = () => {
         </div>
         
         <div className="nav-user">
+          <button 
+            className="theme-toggle-button" 
+            onClick={toggleTheme}
+            aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
+          >
+            {theme === 'light' ? '🌙' : '☀️'}
+          </button>
           {user && (
             <>
               <span className="user-name">{user.email}</span>
@@ -36,4 +45,4 @@ const Navigation = () => {
   );
 };
 
-export default Navigation; 
+export default Navigation;

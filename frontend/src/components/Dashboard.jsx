@@ -494,19 +494,19 @@ const Dashboard = () => {
                                 <li key={email.id} style={{ 
                                     marginBottom: '15px', 
                                     padding: '15px', 
-                                    border: '1px solid #ddd',
+                                    border: '1px solid var(--border-color)',
                                     borderRadius: '4px',
-                                    backgroundColor: isNoReplyEmail(email.from) ? 'blue' : 'red'
+                                    backgroundColor: 'var(--card-bg)'
                                 }}>
                                     <strong>From:</strong> {email.from}
                                     {isNoReplyEmail(email.from) && (
                                         <span style={{ 
                                             marginLeft: '10px', 
-                                            backgroundColor: '#ffeb3b', 
+                                            backgroundColor: 'var(--warning-color)', 
                                             padding: '3px 6px', 
                                             borderRadius: '3px',
                                             fontSize: '0.8rem',
-                                            color: '#333'
+                                            color: 'var(--bg-primary)'
                                         }}>
                                             No-Reply Address
                                         </span>
@@ -538,8 +538,8 @@ const Dashboard = () => {
                                         <div style={{ 
                                             margin: '8px 0',
                                             padding: '8px 12px',
-                                            background: '#f9f9f9',
-                                            borderLeft: '3px solid #4285F4',
+                                            background: 'var(--bg-secondary)',
+                                            borderLeft: '3px solid var(--accent-color)',
                                             borderRadius: '2px'
                                         }}>
                                             <strong>AI Summary:</strong> {getEmailContent(email).aiSummary}
@@ -554,8 +554,8 @@ const Dashboard = () => {
                                         style={{
                                             fontSize: '0.9rem',
                                             padding: '2px 8px',
-                                            backgroundColor: '#f0f0f0',
-                                            border: '1px solid #ccc',
+                                            backgroundColor: 'var(--bg-secondary)',
+                                            border: '1px solid var(--border-color)',
                                             borderRadius: '3px',
                                             cursor: summarizing === email.id ? 'wait' : 'pointer'
                                         }}
@@ -607,7 +607,7 @@ const Dashboard = () => {
                                                 onClick={() => handleAddToCalendar(email.id)}
                                                 disabled={addingEvent}
                                                 style={{
-                                                    backgroundColor: '#4285F4',
+                                                    backgroundColor: 'var(--accent-color)',
                                                     color: 'white',
                                                     border: 'none',
                                                     padding: '5px 10px',
@@ -623,7 +623,7 @@ const Dashboard = () => {
                                         <button
                                             onClick={() => window.open(`https://mail.google.com/mail/u/0/#inbox/${email.id}`, '_blank')}
                                             style={{
-                                                backgroundColor: '#DB4437',
+                                                backgroundColor: 'var(--error-color)',
                                                 color: 'white',
                                                 border: 'none',
                                                 padding: '5px 10px',
@@ -662,14 +662,14 @@ const Dashboard = () => {
                                                     minHeight: '100px',
                                                     padding: '8px',
                                                     borderRadius: '4px',
-                                                    border: '1px solid #ddd'
+                                                    border: '1px solid var(--border-color)'
                                                 }}
                                             />
                                             <button 
                                                 onClick={handleSendReply}
                                                 style={{ 
                                                     marginTop: '10px',
-                                                    backgroundColor: '#4caf50',
+                                                    backgroundColor: 'var(--success-color)',
                                                     color: 'white',
                                                     border: 'none',
                                                     padding: '8px 16px',
