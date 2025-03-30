@@ -16,13 +16,22 @@ const Navigation = () => {
     <nav className="main-navigation">
       <div className="nav-container">
         <div className="nav-brand">
-          <Link to="/dashboard">DIGI-U</Link>
+          <Link to="/dashboard">
+            <span className="brand-icon">📧</span>
+            <span className="brand-text">DIGI-U</span>
+          </Link>
         </div>
         
         <div className="nav-links">
-          <Link to="/dashboard" className={isActive('/dashboard')}>Emails</Link>
-          <Link to="/news-search" className={isActive('/news-search')}>News Search</Link>
-          <Link to="/browsing-history" className={isActive('/browsing-history')}>Browsing History</Link>
+          <Link to="/dashboard" className={isActive('/dashboard')}>
+            <span className="nav-link-icon">📥</span> Emails
+          </Link>
+          <Link to="/news-search" className={isActive('/news-search')}>
+            <span className="nav-link-icon">📰</span> News Search
+          </Link>
+          <Link to="/browsing-history" className={isActive('/browsing-history')}>
+            <span className="nav-link-icon">🔍</span> Browsing History
+          </Link>
         </div>
         
         <div className="nav-user">
@@ -31,12 +40,19 @@ const Navigation = () => {
             onClick={toggleTheme}
             aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
           >
-            {theme === 'light' ? '🌙' : '☀️'}
+            <span className="theme-icon">{theme === 'light' ? '🌙' : '☀️'}</span>
+            <span className="theme-text">{theme === 'light' ? 'Dark' : 'Light'} Mode</span>
           </button>
           {user && (
             <>
-              <span className="user-name">{user.email}</span>
-              <button className="logout-button" onClick={logout}>Logout</button>
+              <div className="user-profile">
+                <span className="user-avatar">{user.email.charAt(0).toUpperCase()}</span>
+                <span className="user-name">{user.email}</span>
+              </div>
+              <button className="logout-button" onClick={logout}>
+                <span className="logout-icon">🚪</span>
+                <span>Logout</span>
+              </button>
             </>
           )}
         </div>

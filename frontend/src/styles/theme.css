@@ -1,47 +1,67 @@
 :root {
-  /* Light theme (default) */
+  /* Light theme (default) - Gmail inspired */
   --bg-primary: #ffffff;
   --bg-secondary: #f5f5f5;
   --bg-tertiary: #e9e9e9;
-  --text-primary: #333333;
-  --text-secondary: #555555;
+  --text-primary: #202124;
+  --text-secondary: #5f6368;
   --border-color: #dddddd;
-  --accent-color: #4285F4;
+  
+  /* Primary color palette */
+  --accent-color: #4285F4; /* Google Blue */
   --accent-hover: #3367d6;
-  --error-color: #DB4437;
-  --success-color: #0f9d58;
-  --warning-color: #f4b400;
-  --card-bg: #ffffff;
-  --card-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  --input-bg: #ffffff;
-  --input-border: #cccccc;
-  --button-text: #ffffff;
-  --disabled-bg: #e0e0e0;
-  --disabled-text: #888888;
-  --hover-bg: #f0f0f0;
-}
-
-/* Dark theme */
-[data-theme='dark'] {
-  --bg-primary: #1e1e1e;
-  --bg-secondary: #252526;
-  --bg-tertiary: #2d2d30;
-  --text-primary: #e0e0e0;
-  --text-secondary: #cccccc;
-  --border-color: #444444;
-  --accent-color: #4285F4;
-  --accent-hover: #5294ff;
-  --error-color: #f55a4e;
+  --accent-light: #e8f0fe;
+  --accent-secondary: #34a853; /* Google Green */
+  --accent-tertiary: #ea4335; /* Google Red */
+  --accent-quaternary: #fbbc05; /* Google Yellow */
+  
+  /* Status colors */
+  --error-color: #ea4335;
   --success-color: #34a853;
   --warning-color: #fbbc05;
-  --card-bg: #252526;
-  --card-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-  --input-bg: #333333;
-  --input-border: #555555;
+  
+  /* UI elements */
+  --card-bg: #ffffff;
+  --card-shadow: 0 1px 2px 0 rgba(60, 64, 67, 0.3), 0 1px 3px 1px rgba(60, 64, 67, 0.15);
+  --input-bg: #ffffff;
+  --input-border: #dadce0;
   --button-text: #ffffff;
-  --disabled-bg: #3a3a3a;
-  --disabled-text: #888888;
-  --hover-bg: #3a3a3a;
+  --disabled-bg: #f1f3f4;
+  --disabled-text: #80868b;
+  --hover-bg: #f1f3f4;
+}
+
+/* Dark theme - Gmail inspired dark mode */
+[data-theme='dark'] {
+  --bg-primary: #131314;
+  --bg-secondary: #202124;
+  --bg-tertiary: #303134;
+  --text-primary: #e8eaed;
+  --text-secondary: #9aa0a6;
+  --border-color: #3c4043;
+  
+  /* Primary color palette - slightly adjusted for dark mode */
+  --accent-color: #8ab4f8; /* Lighter Google Blue for dark mode */
+  --accent-hover: #aecbfa;
+  --accent-light: #1a73e8;
+  --accent-secondary: #81c995; /* Lighter Google Green */
+  --accent-tertiary: #f28b82; /* Lighter Google Red */
+  --accent-quaternary: #fdd663; /* Lighter Google Yellow */
+  
+  /* Status colors - adjusted for dark mode */
+  --error-color: #f28b82;
+  --success-color: #81c995;
+  --warning-color: #fdd663;
+  
+  /* UI elements */
+  --card-bg: #202124;
+  --card-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.3), 0 1px 3px 1px rgba(0, 0, 0, 0.15);
+  --input-bg: #303134;
+  --input-border: #5f6368;
+  --button-text: #e8eaed;
+  --disabled-bg: #3c4043;
+  --disabled-text: #9aa0a6;
+  --hover-bg: #3c4043;
 }
 
 /* Global styles to apply theme */
@@ -49,32 +69,54 @@ body {
   background-color: var(--bg-primary);
   color: var(--text-primary);
   transition: background-color 0.3s ease, color 0.3s ease;
+  font-family: 'Roboto', 'Segoe UI', Arial, sans-serif;
+  margin: 0;
+  padding: 0;
 }
 
 /* Common components styling */
 button {
-  transition: background-color 0.3s ease, color 0.3s ease;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+button:focus {
+  outline: none;
 }
 
 input, textarea, select {
   background-color: var(--input-bg);
   color: var(--text-primary);
   border: 1px solid var(--input-border);
-  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+  transition: all 0.2s ease;
+  font-family: inherit;
+  border-radius: 4px;
+}
+
+input:focus, textarea:focus, select:focus {
+  outline: none;
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 2px rgba(66, 133, 244, 0.2);
 }
 
 /* Card-like elements */
 .card {
   background-color: var(--card-bg);
   box-shadow: var(--card-shadow);
-  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  overflow: hidden;
+  transition: all 0.2s ease;
 }
 
 /* Links */
 a {
   color: var(--accent-color);
+  text-decoration: none;
+  transition: color 0.2s ease;
 }
 
 a:hover {
   color: var(--accent-hover);
+  text-decoration: underline;
 }

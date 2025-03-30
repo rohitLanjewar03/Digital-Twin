@@ -1,0 +1,467 @@
+/* Gmail-inspired Dashboard Styles */
+.dashboard-container {
+  display: flex;
+  height: calc(100vh - 60px);
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Sidebar Styles */
+.sidebar {
+  width: 240px;
+  background-color: var(--bg-secondary);
+  border-right: 1px solid var(--border-color);
+  padding: 16px 0;
+  height: 100%;
+  transition: all 0.3s ease;
+  overflow-y: auto;
+}
+
+.sidebar-option {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  margin: 4px 8px;
+  border-radius: 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.sidebar-option:hover {
+  background-color: var(--hover-bg);
+}
+
+.sidebar-option.active {
+  background-color: var(--accent-light);
+  color: var(--accent-color);
+}
+
+.sidebar-option-icon {
+  margin-right: 12px;
+  font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s ease;
+}
+
+.sidebar-option:hover .sidebar-option-icon {
+  transform: scale(1.1);
+}
+
+/* Main Content Area */
+.main-content {
+  flex: 1;
+  padding: 16px;
+  overflow-y: auto;
+  height: 100%;
+}
+
+/* Email List Styles */
+.emails-container {
+  background-color: var(--bg-primary);
+  border-radius: 8px;
+  box-shadow: var(--card-shadow);
+  overflow: hidden;
+}
+
+.emails-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  border-bottom: 1px solid var(--border-color);
+  background-color: var(--bg-secondary);
+}
+
+.emails-header h2 {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.refresh-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.last-refresh {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.refresh-button {
+  background-color: var(--accent-color);
+  color: white;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+}
+
+.refresh-button:hover {
+  background-color: var(--accent-hover);
+  transform: scale(1.05);
+}
+
+.refreshing {
+  animation: spin 1s infinite linear;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Email Items */
+.emails-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.email-item {
+  padding: 16px;
+  border-bottom: 1px solid var(--border-color);
+  transition: all 0.2s ease;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.email-item:hover {
+  background-color: var(--hover-bg);
+}
+
+.email-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.email-from {
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.no-reply-badge {
+  background-color: var(--warning-color);
+  padding: 3px 6px;
+  border-radius: 3px;
+  font-size: 0.8rem;
+  color: var(--bg-primary);
+  font-weight: normal;
+}
+
+.email-subject {
+  font-weight: 500;
+  margin: 8px 0;
+}
+
+.email-preview {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.email-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+
+.email-action-btn {
+  padding: 6px 12px;
+  border-radius: 4px;
+  border: none;
+  cursor: pointer;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+}
+
+.email-action-btn:hover {
+  transform: translateY(-2px);
+}
+
+.btn-read {
+  background-color: var(--accent-color);
+  color: white;
+}
+
+.btn-reply {
+  background-color: var(--success-color);
+  color: white;
+}
+
+.btn-calendar {
+  background-color: var(--accent-secondary);
+  color: white;
+}
+
+.btn-view {
+  background-color: var(--accent-tertiary);
+  color: white;
+}
+
+.btn-disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Search Container */
+.search-container {
+  margin-bottom: 16px;
+  padding: 8px 16px;
+  background-color: var(--bg-secondary);
+  border-radius: 8px;
+  box-shadow: var(--card-shadow);
+}
+
+.search-container form {
+  display: flex;
+  gap: 8px;
+}
+
+.search-input {
+  flex: 1;
+  padding: 10px 16px;
+  border-radius: 24px;
+  border: 1px solid var(--border-color);
+  background-color: var(--input-bg);
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  transition: all 0.2s ease;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 2px rgba(66, 133, 244, 0.2);
+}
+
+.search-button {
+  background-color: var(--accent-color);
+  color: white;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 24px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.search-button:hover {
+  background-color: var(--accent-hover);
+  transform: scale(1.05);
+}
+
+/* AI Agent Sliding Panel */
+.ai-agent-panel {
+  position: fixed;
+  top: 60px;
+  left: -500px;
+  width: 480px;
+  height: calc(100vh - 60px);
+  background-color: var(--bg-primary);
+  border-right: 1px solid var(--border-color);
+  box-shadow: var(--card-shadow);
+  z-index: 900;
+  padding: 20px;
+  overflow-y: auto;
+  transition: left 0.3s ease;
+}
+
+.ai-agent-panel.active {
+  left: 0;
+}
+
+.ai-agent-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.ai-agent-header h3 {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ai-agent-close {
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition: all 0.2s ease;
+}
+
+.ai-agent-close:hover {
+  color: var(--text-primary);
+  transform: scale(1.1);
+}
+
+/* Compose Container Styles */
+.compose-container {
+  background-color: var(--bg-primary);
+  border-radius: 8px;
+  box-shadow: var(--card-shadow);
+  padding: 20px;
+  margin-bottom: 16px;
+}
+
+.compose-container h2 {
+  margin-top: 0;
+  margin-bottom: 20px;
+  font-size: 1.2rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.compose-container .ai-agent-panel {
+  position: static;
+  width: 100%;
+  height: auto;
+  left: 0;
+  top: 0;
+  box-shadow: none;
+  border: none;
+  padding: 0;
+  margin-top: 0;
+}
+
+/* Loading and Empty States */
+.loading, .no-emails {
+  padding: 40px;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 1rem;
+}
+
+/* Error Message */
+.error-message {
+  background-color: rgba(219, 68, 55, 0.1);
+  border: 1px solid var(--error-color);
+  color: var(--error-color);
+  padding: 12px 16px;
+  border-radius: 4px;
+  margin-bottom: 16px;
+  font-size: 0.9rem;
+}
+
+/* Reply Form */
+.reply-form {
+  background-color: var(--bg-secondary);
+  padding: 16px;
+  border-radius: 8px;
+  margin-top: 12px;
+}
+
+.reply-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.reply-tone-selector {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.reply-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideIn {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.animate-fade {
+  animation: fadeIn 0.3s ease;
+}
+
+.animate-slide {
+  animation: slideIn 0.3s ease;
+}
+
+/* Micro-interactions */
+.micro-interaction {
+  display: inline-flex;
+  align-items: center;
+  transition: all 0.2s ease;
+}
+
+.micro-interaction:hover {
+  transform: scale(1.1);
+}
+
+.emoji-bounce {
+  animation: bounce 0.5s ease;
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .sidebar {
+    width: 60px;
+  }
+  
+  .sidebar-option-text {
+    display: none;
+  }
+  
+  .sidebar-option {
+    justify-content: center;
+    padding: 12px 0;
+  }
+  
+  .sidebar-option-icon {
+    margin-right: 0;
+  }
+  
+  .ai-agent-panel {
+    width: 100%;
+  }
+}

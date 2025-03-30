@@ -4,6 +4,7 @@ import { useNavigate, Link } from "react-router-dom";
 import AIAgent from "./AIAgent";
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import '../styles/Dashboard.css';
 
 const Dashboard = () => {
     const { user, loading, logout, validateSession } = useAuth();
@@ -24,6 +25,8 @@ const Dashboard = () => {
     const [summarizing, setSummarizing] = useState(null);
     const [summaryErrors, setSummaryErrors] = useState({});
     const [expandedSummaries, setExpandedSummaries] = useState({});
+    const [showAIAgent, setShowAIAgent] = useState(false);
+    const [activeTab, setActiveTab] = useState("inbox");
 
     // Function to fetch emails
     const fetchData = useCallback(async (forceRefresh = false) => {
@@ -469,6 +472,22 @@ const Dashboard = () => {
         fetchData(true); // Force refresh
     };
 
+    // Toggle AI Agent visibility
+    const toggleAIAgent = () => {
+        setShowAIAgent(!showAIAgent);
+        setActiveTab("compose");
+    };
+
+    // Handle sidebar tab selection
+    const handleTabSelect = (tab) => {
+        setActiveTab(tab);
+        if (tab === "compose") {
+            setShowAIAgent(true);
+        } else {
+            setShowAIAgent(false);
+        }
+    };
+
     if (loading) return <p>Loading...</p>;
     if (!user) return <p>Please log in to view the dashboard.</p>;
 
@@ -488,256 +507,262 @@ const Dashboard = () => {
                 limit={3}
             />
             
-            {/* Search bar */}
-            <div className="search-container">
-                <form onSubmit={handleSearchSubmit}>
-                    <input 
-                        type="text"
-                        placeholder="Search emails..."
-                        value={searchQuery}
-                        onChange={handleSearchChange}
-                        className="search-input"
-                        ref={searchInputRef}
-                    />
-                    <button type="submit" className="search-button">Search</button>
-                </form>
+            {/* Sidebar */}
+            <div className="sidebar">
+                <div 
+                    className={`sidebar-option ${activeTab === "inbox" ? "active" : ""}`}
+                    onClick={() => handleTabSelect("inbox")}
+                >
+                    <span className="sidebar-option-icon">📥</span>
+                    <span className="sidebar-option-text">Inbox</span>
+                    <span className="sidebar-option-count">{filteredEmails.length}</span>
+                </div>
+                <div 
+                    className={`sidebar-option ${activeTab === "compose" ? "active" : ""}`}
+                    onClick={() => handleTabSelect("compose")}
+                >
+                    <span className="sidebar-option-icon">✏️</span>
+                    <span className="sidebar-option-text">Compose</span>
+                </div>
             </div>
             
-            {/* AI Agent Section */}
-            <AIAgent />
-            
-            {/* Rest of your component UI */}
-            {error && <div className="error-message">{error}</div>}
-            
-            {isLoading ? (
-                <div className="loading">Loading emails...</div>
-            ) : (
-                <div className="emails-container">
-                    {/* Emails header with refresh button */}
-                    <div className="emails-header">
-                        <h2>Inbox ({filteredEmails.length})</h2>
-                        <div className="refresh-container">
-                            {lastRefresh && (
-                                <span className="last-refresh">
-                                    Last updated: {lastRefresh.toLocaleTimeString()}
-                                </span>
-                            )}
-                            <button 
-                                className={`refresh-button ${refreshing ? 'refreshing' : ''}`}
-                                onClick={handleRefresh}
-                            >
-                                Refresh
-                            </button>
-                        </div>
-                    </div>
-                    
-                    {/* Emails list */}
-                    {filteredEmails.length === 0 ? (
-                        <div className="no-emails">
-                            {searchQuery ? "No emails match your search." : "No new emails."}
+            {/* Main Content */}
+            <div className="main-content">
+                {/* Search bar */}
+                <div className="search-container">
+                    <form onSubmit={handleSearchSubmit}>
+                        <input 
+                            type="text"
+                            placeholder="Search emails..."
+                            value={searchQuery}
+                            onChange={handleSearchChange}
+                            className="search-input"
+                            ref={searchInputRef}
+                        />
+                        <button type="submit" className="search-button">
+                            <span className="micro-interaction">🔍</span> Search
+                        </button>
+                    </form>
+                </div>
+                
+                {/* Error message */}
+                {error && <div className="error-message">{error}</div>}
+                
+                {/* Email list - Only show when activeTab is "inbox" */}
+                {activeTab === "inbox" && (
+                    isLoading ? (
+                        <div className="loading">
+                            <div className="micro-interaction">📧</div> Loading emails...
                         </div>
                     ) : (
-                        <div className="emails-list">
-                            {filteredEmails.map((email) => (
-                                <li key={email.id} style={{ 
-                                    marginBottom: '15px', 
-                                    padding: '15px', 
-                                    border: '1px solid var(--border-color)',
-                                    borderRadius: '4px',
-                                    backgroundColor: 'var(--card-bg)'
-                                }}>
-                                    <strong>From:</strong> {email.from}
-                                    {isNoReplyEmail(email.from) && (
-                                        <span style={{ 
-                                            marginLeft: '600px', 
-                                            backgroundColor: 'var(--warning-color)', 
-                                            padding: '3px 6px', 
-                                            borderRadius: '3px',
-                                            fontSize: '0.8rem',
-                                            color: 'var(--bg-primary)'
-                                        }}>
-                                            No-Reply Address
+                        <div className="emails-container">
+                            {/* Emails header with refresh button */}
+                            <div className="emails-header">
+                                <h2>
+                                    <span className="micro-interaction">📥</span> Inbox ({filteredEmails.length})
+                                </h2>
+                                <div className="refresh-container">
+                                    {lastRefresh && (
+                                        <span className="last-refresh">
+                                            Last updated: {lastRefresh.toLocaleTimeString()}
                                         </span>
                                     )}
-                                    <br />
-                            <strong>Subject:</strong> {email.subject}<br />
-                            <strong>Preview:</strong> {getEmailContent(email).preview}<br />
-                            
-                            {getEmailContent(email).aiSummary ? (
-                                <div style={{ marginTop: '5px' }}>
-                                    <button
-                                        onClick={() => toggleSummary(email.id)}
-                                        style={{
-                                            background: 'none',
-                                            border: 'none',
-                                            textDecoration: 'underline',
-                                            cursor: 'pointer',
-                                            color: 'black',
-                                            fontSize: '0.9rem',
-                                            padding: '0',
-                                            display: 'inline-flex',
-                                            alignItems: 'center'
-                                        }}
+                                    <button 
+                                        className={`refresh-button ${refreshing ? 'refreshing' : ''}`}
+                                        onClick={handleRefresh}
                                     >
-                                        {expandedSummaries[email.id] ? 'Hide AI Summary' : 'Show AI Summary'}
+                                        <span className="micro-interaction">🔄</span> Refresh
                                     </button>
-                                    
-                                    {expandedSummaries[email.id] && (
-                                        <div style={{ 
-                                            margin: '8px 0',
-                                            padding: '8px 12px',
-                                            background: 'var(--bg-secondary)',
-                                            borderLeft: '3px solid var(--accent-color)',
-                                            borderRadius: '2px'
-                                        }}>
-                                            <strong>AI Summary:</strong> {getEmailContent(email).aiSummary}
-                                        </div>
-                                    )}
+                                </div>
+                            </div>
+                            
+                            {/* Emails list */}
+                            {filteredEmails.length === 0 ? (
+                                <div className="no-emails">
+                                    <span className="micro-interaction">📭</span> {searchQuery ? "No emails match your search." : "No new emails."}
                                 </div>
                             ) : (
-                                <div style={{ marginTop: '5px' }}>
-                                    <button
-                                        onClick={() => requestEmailSummary(email.id)}
-                                        disabled={summarizing === email.id}
-                                        style={{
-                                            fontSize: '0.9rem',
-                                            padding: '2px 8px',
-                                            backgroundColor: 'var(--bg-secondary)',
-                                            border: '1px solid var(--border-color)',
-                                            borderRadius: '3px',
-                                            cursor: summarizing === email.id ? 'wait' : 'pointer'
-                                        }}
-                                    >
-                                        {summarizing === email.id ? 'Generating...' : 'Generate AI Summary'}
-                                    </button>
-                                    {summaryErrors[email.id] && (
-                                        <div style={{ 
-                                            color: 'red', 
-                                            fontSize: '0.8rem', 
-                                            marginTop: '4px' 
-                                        }}>
-                                            {summaryErrors[email.id]}
-                                        </div>
-                                    )}
-                                </div>
+                                <ul className="emails-list">
+                                    {filteredEmails.map((email) => (
+                                        <li key={email.id} className="email-item animate-fade">
+                                            <div className="email-header">
+                                                <div className="email-from">
+                                                    <span className="micro-interaction">👤</span> {email.from}
+                                                    {isNoReplyEmail(email.from) && (
+                                                        <span className="no-reply-badge">
+                                                            <span className="micro-interaction">🤖</span> No-Reply
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            
+                                            <div className="email-subject">
+                                                <span className="micro-interaction">📝</span> {email.subject}
+                                            </div>
+                                            
+                                            <div className="email-preview">
+                                                {getEmailContent(email).preview}
+                                            </div>
+                                            
+                                            {getEmailContent(email).aiSummary ? (
+                                                <div className="email-summary">
+                                                    <button
+                                                        onClick={() => toggleSummary(email.id)}
+                                                        className="summary-toggle"
+                                                    >
+                                                        <span className="micro-interaction">
+                                                            {expandedSummaries[email.id] ? '📕' : '📖'}
+                                                        </span>
+                                                        {expandedSummaries[email.id] ? 'Hide AI Summary' : 'Show AI Summary'}
+                                                    </button>
+                                                    
+                                                    {expandedSummaries[email.id] && (
+                                                        <div className="summary-content animate-slide">
+                                                            <span className="micro-interaction">🤖</span> <strong>AI Summary:</strong> {getEmailContent(email).aiSummary}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            ) : (
+                                                <div className="email-summary">
+                                                    <button
+                                                        onClick={() => requestEmailSummary(email.id)}
+                                                        disabled={summarizing === email.id}
+                                                        className="summary-generate"
+                                                    >
+                                                        <span className="micro-interaction">
+                                                            {summarizing === email.id ? '⏳' : '🤖'}
+                                                        </span>
+                                                        {summarizing === email.id ? 'Generating...' : 'Generate AI Summary'}
+                                                    </button>
+                                                    {summaryErrors[email.id] && (
+                                                        <div className="summary-error">
+                                                            <span className="micro-interaction">⚠️</span> {summaryErrors[email.id]}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+                                            
+                                            <div className="email-actions">
+                                                <button 
+                                                    onClick={() => handleMarkAsRead(email.id)}
+                                                    className="email-action-btn btn-read"
+                                                >
+                                                    <span className="micro-interaction">✓</span> Mark as Read
+                                                </button>
+                                                
+                                                {!isNoReplyEmail(email.from) ? (
+                                                    <button 
+                                                        onClick={() => handleReplyClick(email.id)}
+                                                        className="email-action-btn btn-reply"
+                                                        disabled={replyingTo === email.id}
+                                                    >
+                                                        <span className="micro-interaction">↩️</span> Reply
+                                                    </button>
+                                                ) : (
+                                                    <button 
+                                                        disabled 
+                                                        title="Cannot reply to no-reply addresses"
+                                                        className="email-action-btn btn-reply btn-disabled"
+                                                    >
+                                                        <span className="micro-interaction">↩️</span> Reply
+                                                    </button>
+                                                )}
+                                                
+                                                {likelyContainsEventInfo(email) && (
+                                                    <button 
+                                                        onClick={() => handleAddToCalendar(email.id)}
+                                                        disabled={addingEvent}
+                                                        className="email-action-btn btn-calendar"
+                                                    >
+                                                        <span className="micro-interaction">📅</span> {addingEvent ? 'Adding...' : 'Add to Calendar'}
+                                                    </button>
+                                                )}
+                                                
+                                                <button
+                                                    onClick={() => window.open(`https://mail.google.com/mail/u/0/#inbox/${email.id}`, '_blank')}
+                                                    className="email-action-btn btn-view"
+                                                >
+                                                    <span className="micro-interaction">👁️</span> View in Gmail
+                                                </button>
+                                            </div>
+                                            
+                                            {replyingTo === email.id && (
+                                                <div className="reply-form animate-slide">
+                                                    <div className="reply-header">
+                                                        <h4>
+                                                            <span className="micro-interaction">↩️</span> Reply to: {email.from}
+                                                        </h4>
+                                                        <div className="reply-tone-selector">
+                                                            <label>Tone:</label>
+                                                            <select 
+                                                                value={tone} 
+                                                                onChange={(e) => setTone(e.target.value)}
+                                                            >
+                                                                <option value="professional">Professional</option>
+                                                                <option value="casual">Casual</option>
+                                                                <option value="friendly">Friendly</option>
+                                                            </select>
+                                                            <button 
+                                                                onClick={() => handleGenerateReply(email.id)}
+                                                                className="generate-reply-btn"
+                                                            >
+                                                                <span className="micro-interaction">✨</span> Generate
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <textarea
+                                                        value={replyContent}
+                                                        onChange={(e) => setReplyContent(e.target.value)}
+                                                        placeholder="Type your reply here..."
+                                                        className="reply-textarea"
+                                                    />
+                                                    
+                                                    <div className="reply-actions">
+                                                        <button 
+                                                            onClick={() => setReplyingTo(null)}
+                                                            className="cancel-reply-btn"
+                                                        >
+                                                            <span className="micro-interaction">❌</span> Cancel
+                                                        </button>
+                                                        <button 
+                                                            onClick={handleSendReply}
+                                                            className="send-reply-btn"
+                                                        >
+                                                            <span className="micro-interaction">📤</span> Send Reply
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </li>
+                                    ))}
+                                </ul>
                             )}
-                            
-                                    <div style={{ marginTop: '10px' }}>
-                                        <button 
-                                            onClick={() => handleMarkAsRead(email.id)}
-                                            style={{ marginRight: '5px', color: 'white' }}
-                                        >
-                                            Mark as Read
-                                        </button>
-                                        {!isNoReplyEmail(email.from) ? (
-                                            <button 
-                                                onClick={() => handleReplyClick(email.id)}
-                                                style={{ marginRight: '5px', color: 'white' }}
-                                            disabled={replyingTo === email.id}  
-                                            >
-                                                Reply
-                                            </button>
-                                        ) : (
-                                            <button 
-                                                disabled 
-                                                title="Cannot reply to no-reply addresses"
-                                                style={{ 
-                                                    opacity: 0.5, 
-                                                    cursor: 'not-allowed',
-                                                    marginRight: '5px',
-                                                    color: 'white'
-                                                }}
-                                            >
-                                                Reply
-                                            </button>
-                                        )}
-                                        {/* Only show Add to Calendar button if the email likely contains event info */}
-                                        {likelyContainsEventInfo(email) && (
-                                            <button 
-                                                onClick={() => handleAddToCalendar(email.id)}
-                                                disabled={addingEvent}
-                                                style={{
-                                                    backgroundColor: 'var(--accent-color)',
-                                                    color: 'white',
-                                                    border: 'none',
-                                                    padding: '5px 10px',
-                                                    borderRadius: '4px',
-                                                    cursor: addingEvent ? 'not-allowed' : 'pointer',
-                                                    opacity: addingEvent ? 0.7 : 1,
-                                                    marginRight: '5px'
-                                                }}
-                                            >
-                                                {addingEvent ? 'Adding...' : 'Add to Calendar'}
-                                            </button>
-                                        )}
-                                        <button
-                                            onClick={() => window.open(`https://mail.google.com/mail/u/0/#inbox/${email.id}`, '_blank')}
-                                            style={{
-                                                backgroundColor: 'var(--error-color)',
-                                                color: 'white',
-                                                border: 'none',
-                                                padding: '5px 10px',
-                                                borderRadius: '4px',
-                                                cursor: 'pointer',
-                                                marginRight: '5px'
-                                            }}
-                                        >
-                                            View in Gmail
-                                        </button>
-                            {replyingTo === email.id && (
-                                        <div style={{ marginTop: '10px' }}>
-                                            <select 
-                                                value={tone} 
-                                                onChange={(e) => setTone(e.target.value)}
-                                                style={{ marginRight: '5px' }}
-                                            >
-                                        <option value="professional">Professional</option>
-                                        <option value="casual">Casual</option>
-                                        <option value="friendly">Friendly</option>
-                                    </select>
-                                            <button 
-                                                onClick={() => handleGenerateReply(email.id)}
-                                                style={{ marginRight: '5px' }}
-                                            >
-                                                Generate Reply
-                                            </button>
-                                    <textarea
-                                        value={replyContent}
-                                        onChange={(e) => setReplyContent(e.target.value)}
-                                        placeholder="Type your reply here..."
-                                                style={{ 
-                                                    display: 'block', 
-                                                    width: '100%', 
-                                                    marginTop: '10px',
-                                                    minHeight: '100px',
-                                                    padding: '8px',
-                                                    borderRadius: '4px',
-                                                    border: '1px solid var(--border-color)'
-                                                }}
-                                            />
-                                            <button 
-                                                onClick={handleSendReply}
-                                                style={{ 
-                                                    marginTop: '10px',
-                                                    backgroundColor: 'var(--success-color)',
-                                                    color: 'white',
-                                                    border: 'none',
-                                                    padding: '8px 16px',
-                                                    borderRadius: '4px',
-                                                    cursor: 'pointer'
-                                                }}
-                                            >
-                                                Send Reply
-                                            </button>
-                                </div>
-                            )}
-                                    </div>
-                        </li>
-                            ))}
                         </div>
-                    )}
-                </div>
+                    )
                 )}
+                
+                {/* Show AI Agent directly in the main content when activeTab is "compose" */}
+                {activeTab === "compose" && (
+                    <div className="compose-container">
+                        <h2><span className="micro-interaction">✏️</span> Compose New Email</h2>
+                        <AIAgent />
+                    </div>
+                )}
+            </div>
+            
+            {/* AI Agent Panel (now only used for mobile view) */}
+            <div className={`ai-agent-panel ${showAIAgent && window.innerWidth <= 768 ? 'active' : ''}`}>
+                <div className="ai-agent-header">
+                    <h3>
+                        <span className="micro-interaction">✨</span> AI Email Assistant
+                    </h3>
+                    <button className="ai-agent-close" onClick={toggleAIAgent}>
+                        <span className="micro-interaction">❌</span>
+                    </button>
+                </div>
+                {window.innerWidth <= 768 && <AIAgent />}
+            </div>
         </div>
     );
 };
