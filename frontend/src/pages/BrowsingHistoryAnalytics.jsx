@@ -24,6 +24,26 @@ const BrowsingHistoryAnalytics = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
   
+  // Section visibility states
+  const [visibleSections, setVisibleSections] = useState({
+    summary: true,
+    categories: true,
+    domains: true,
+    timeOfDay: true,
+    weeklyActivity: true,
+    contentTypes: true,
+    searchAnalysis: true,
+    behavior: true
+  });
+  
+  // Toggle section visibility
+  const toggleSection = (section) => {
+    setVisibleSections(prev => ({
+      ...prev,
+      [section]: !prev[section]
+    }));
+  };
+  
   // Fetch analytics data
   const fetchAnalytics = async (forceRefresh = false) => {
     setRefreshing(true);
@@ -618,7 +638,32 @@ const BrowsingHistoryAnalytics = () => {
         </div>
       </div>
       
-      <div className="analytics-summary">
+      <div className="section-header">
+        <h2 className="section-title">Summary</h2>
+        <button 
+          className="toggle-button" 
+          onClick={() => toggleSection('summary')}
+          aria-label={visibleSections.summary ? 'Hide Summary' : 'Show Summary'}
+        >
+          {visibleSections.summary ? (
+            <>
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="18 15 12 9 6 15"></polyline>
+              </svg>
+              Hide
+            </>
+          ) : (
+            <>
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+              Show
+            </>
+          )}
+        </button>
+      </div>
+      
+      <div className={`analytics-summary ${visibleSections.summary ? '' : 'hidden'}`}>
         <div className="summary-card">
           <h3>Total Pages Visited</h3>
           <div className="summary-value">{analytics.totalItems || 0}</div>
@@ -641,8 +686,31 @@ const BrowsingHistoryAnalytics = () => {
       
       <div className="analytics-grid">
         {/* Topic Categories Chart */}
-        <div className="analytics-card categories-card">
-          <h2>Browsing Categories & Interests</h2>
+        <div className={`analytics-card categories-card ${visibleSections.categories ? '' : 'hidden'}`}>
+          <div className="section-header">
+            <h2 className="section-title">Browsing Categories & Interests</h2>
+            <button 
+              className="toggle-button" 
+              onClick={() => toggleSection('categories')}
+              aria-label={visibleSections.categories ? 'Hide Categories' : 'Show Categories'}
+            >
+              {visibleSections.categories ? (
+                <>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="18 15 12 9 6 15"></polyline>
+                  </svg>
+                  Hide
+                </>
+              ) : (
+                <>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                  </svg>
+                  Show
+                </>
+              )}
+            </button>
+          </div>
           <p className="section-description">
             This analysis shows the topics and categories you browse most frequently, revealing your online interests and preferences.
           </p>
@@ -743,15 +811,37 @@ const BrowsingHistoryAnalytics = () => {
               {getInterestDiversityLevel(analytics.topicCategories?.topicDistributionWithIcons)}. 
               This analysis is based on {analytics.totalItems || 0} pages visited across {analytics.domainFrequency?.totalUniqueDomainsVisited || 0} unique domains.
               {analytics.topicCategories?.topicDistributionWithIcons?.length > 3 ? 
-                ` Your top three categories represent ${getTopCategoriesPercentage(analytics.topicCategories.topicDistributionWithIcons)}% of your total browsing.` 
-                : ''}
+                ` Your top three categories represent ${getTopCategoriesPercentage(analytics.topicCategories.topicDistributionWithIcons)}% of your total browsing.` : ''}
             </p>
           </div>
         </div>
         
         {/* Top Domains Chart */}
-        <div className="analytics-card domains-card">
-          <h2>Most Visited Websites</h2>
+        <div className={`analytics-card domains-card ${visibleSections.domains ? '' : 'hidden'}`}>
+          <div className="section-header">
+            <h2 className="section-title">Most Visited Websites</h2>
+            <button 
+              className="toggle-button" 
+              onClick={() => toggleSection('domains')}
+              aria-label={visibleSections.domains ? 'Hide Domains' : 'Show Domains'}
+            >
+              {visibleSections.domains ? (
+                <>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="18 15 12 9 6 15"></polyline>
+                  </svg>
+                  Hide
+                </>
+              ) : (
+                <>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                  </svg>
+                  Show
+                </>
+              )}
+            </button>
+          </div>
           <div className="chart-container">
             <ResponsiveContainer width="100%" height={300}>
               <BarChart
@@ -782,8 +872,31 @@ const BrowsingHistoryAnalytics = () => {
         </div>
         
         {/* Hourly Activity Chart */}
-        <div className="analytics-card time-card">
-          <h2>Time of Day Activity</h2>
+        <div className={`analytics-card time-card ${visibleSections.timeOfDay ? '' : 'hidden'}`}>
+          <div className="section-header">
+            <h2 className="section-title">Time of Day Activity</h2>
+            <button 
+              className="toggle-button" 
+              onClick={() => toggleSection('timeOfDay')}
+              aria-label={visibleSections.timeOfDay ? 'Hide Time of Day Activity' : 'Show Time of Day Activity'}
+            >
+              {visibleSections.timeOfDay ? (
+                <>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="18 15 12 9 6 15"></polyline>
+                  </svg>
+                  Hide
+                </>
+              ) : (
+                <>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                  </svg>
+                  Show
+                </>
+              )}
+            </button>
+          </div>
           <p className="section-description">
             This analysis shows when you're most active online throughout the day, helping identify your peak browsing hours.
           </p>
@@ -854,8 +967,31 @@ const BrowsingHistoryAnalytics = () => {
         </div>
         
         {/* Weekly Activity Chart */}
-        <div className="analytics-card day-card">
-          <h2>Day of Week Activity</h2>
+        <div className={`analytics-card day-card ${visibleSections.weeklyActivity ? '' : 'hidden'}`}>
+          <div className="section-header">
+            <h2 className="section-title">Day of Week Activity</h2>
+            <button 
+              className="toggle-button" 
+              onClick={() => toggleSection('weeklyActivity')}
+              aria-label={visibleSections.weeklyActivity ? 'Hide Weekly Activity' : 'Show Weekly Activity'}
+            >
+              {visibleSections.weeklyActivity ? (
+                <>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="18 15 12 9 6 15"></polyline>
+                  </svg>
+                  Hide
+                </>
+              ) : (
+                <>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                  </svg>
+                  Show
+                </>
+              )}
+            </button>
+          </div>
           <p className="section-description">
             This analysis shows your browsing patterns across different days of the week, revealing when you're most active.
           </p>
@@ -915,12 +1051,33 @@ const BrowsingHistoryAnalytics = () => {
         </div>
         
         {/* Content Types Chart */}
-        <div className="analytics-card content-card">
-          <h2>Content Consumption Analysis</h2>
+        <div className={`analytics-card content-card ${visibleSections.contentTypes ? '' : 'hidden'}`}>
+          <div className="section-header">
+            <h2 className="section-title">Content Consumption Analysis</h2>
+            <button 
+              className="toggle-button" 
+              onClick={() => toggleSection('contentTypes')}
+              aria-label={visibleSections.contentTypes ? 'Hide Content Types' : 'Show Content Types'}
+            >
+              {visibleSections.contentTypes ? (
+                <>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="18 15 12 9 6 15"></polyline>
+                  </svg>
+                  Hide
+                </>
+              ) : (
+                <>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                  </svg>
+                  Show
+                </>
+              )}
+            </button>
+          </div>
           <p className="section-description">
             This analysis shows the types of content you consume online and their relative proportions.
-            {analytics.contentTypes?.contentDiversity && 
-              ` Your content diversity score is ${analytics.contentTypes.contentDiversity}/100.`}
           </p>
           <div className="chart-container split-view">
             <div className="chart-area">
@@ -1008,8 +1165,31 @@ const BrowsingHistoryAnalytics = () => {
         </div>
         
         {/* Behavior Patterns Card */}
-        <div className="analytics-card behavior-card">
-          <h2>Browsing Behavior & Patterns</h2>
+        <div className={`analytics-card behavior-card ${visibleSections.behavior ? '' : 'hidden'}`}>
+          <div className="section-header">
+            <h2 className="section-title">Browsing Behavior & Patterns</h2>
+            <button 
+              className="toggle-button" 
+              onClick={() => toggleSection('behavior')}
+              aria-label={visibleSections.behavior ? 'Hide Behavior Patterns' : 'Show Behavior Patterns'}
+            >
+              {visibleSections.behavior ? (
+                <>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="18 15 12 9 6 15"></polyline>
+                  </svg>
+                  Hide
+                </>
+              ) : (
+                <>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                  </svg>
+                  Show
+                </>
+              )}
+            </button>
+          </div>
           <p className="section-description">
             This analysis reveals how you interact with websites, including session patterns, returning visits, and time distribution.
           </p>

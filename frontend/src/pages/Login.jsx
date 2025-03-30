@@ -26,12 +26,12 @@ const Login = () => {
     <div className="h-screen flex flex-col items-center justify-center bg-black relative">
     {/* Login Button (top-right) */}
     <button 
-      className="absolute top-4 right-4 text-white px-4 py-2 border-2 border-gray-500 rounded-lg 
-                hover:bg-blue-600 transition-colors z-10"
-      onClick={handleGoogleLogin}
-    >
-      Login
-    </button>
+  className="absolute top-4 right-4 text-white px-4 py-2 border-2 border-white rounded-lg 
+            hover:bg-blue-600 transition-colors z-10"
+  onClick={handleGoogleLogin}
+>
+  Login
+</button>
   
     {/* Video Container (centered with max-width/max-height) */}
     <div className="w-full max-w-7xl p-4"> {/* Adjust max-w as needed */}

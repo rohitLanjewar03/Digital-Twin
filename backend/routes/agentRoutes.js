@@ -11,7 +11,7 @@ router.use(isAuthenticated);
 // Preview an email based on instruction
 router.post("/preview", async (req, res) => {
     try {
-        const { instruction } = req.body;
+        const { instruction, tone = "professional" } = req.body;
         const user = req.session.user;
 
         if (!instruction) {
@@ -34,7 +34,7 @@ router.post("/preview", async (req, res) => {
             const content = await generateEmailContent(
                 user.name, 
                 taskDetails.content_topic,
-                "professional",
+                tone, // Use the tone from the request
                 taskDetails.to // Pass recipient for better greeting
             );
             
@@ -45,7 +45,8 @@ router.post("/preview", async (req, res) => {
                     to: taskDetails.to,
                     subject,
                     content,
-                    content_topic: taskDetails.content_topic
+                    content_topic: taskDetails.content_topic,
+                    tone // Include tone in the response
                 }
             });
         } else {
@@ -86,10 +87,9 @@ router.post("/send-email", async (req, res) => {
     }
 });
 
-// Original execute endpoint
 router.post("/execute", async (req, res) => {
     try {
-        const { instruction } = req.body;
+        const { instruction, tone = "professional" } = req.body;
         const user = req.session.user;
 
         if (!instruction) {
@@ -112,7 +112,7 @@ router.post("/execute", async (req, res) => {
             const content = await generateEmailContent(
                 user.name, 
                 taskDetails.content_topic,
-                "professional",
+                tone, // Use the tone from the request
                 taskDetails.to // Pass recipient for better greeting
             );
             
@@ -126,7 +126,8 @@ router.post("/execute", async (req, res) => {
                     emailSent: true,
                     to: taskDetails.to,
                     subject,
-                    content
+                    content,
+                    tone // Include tone in the response
                 });
             } else {
                 return res.json({
@@ -143,4 +144,4 @@ router.post("/execute", async (req, res) => {
     }
 });
 
-module.exports = router; 
+module.exports = router;

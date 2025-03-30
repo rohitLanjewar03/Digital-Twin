@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { useAuth } from "../context/useAuth";
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const AIAgent = () => {
     const { user } = useAuth();
@@ -9,11 +11,15 @@ const AIAgent = () => {
     const [emailDetails, setEmailDetails] = useState(null);
     const [response, setResponse] = useState(null);
     const [error, setError] = useState(null);
+    const [tone, setTone] = useState("professional"); // Default tone
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         
-        if (!instruction.trim()) return;
+        if (!instruction.trim()) {
+            toast.warning("Please enter an instruction first");
+            return;
+        }
         
         setProcessing(true);
         setError(null);
@@ -29,7 +35,7 @@ const AIAgent = () => {
                     "Content-Type": "application/json",
                 },
                 credentials: "include",
-                body: JSON.stringify({ instruction }),
+                body: JSON.stringify({ instruction, tone }), // Include tone in the request
             });
             
             // If preview endpoint fails, fallback to direct execution
@@ -42,7 +48,7 @@ const AIAgent = () => {
                         "Content-Type": "application/json",
                     },
                     credentials: "include",
-                    body: JSON.stringify({ instruction }),
+                    body: JSON.stringify({ instruction, tone }), // Include tone in the request
                 });
                 
                 // Check content type
@@ -61,6 +67,7 @@ const AIAgent = () => {
                 
                 // Display the response directly if we used the execute endpoint
                 setResponse(data);
+                toast.success("Email sent successfully!");
                 return;
             }
             
@@ -78,11 +85,14 @@ const AIAgent = () => {
             if (data.task === "send_email" && data.emailDetails) {
                 setEmailDetails(data.emailDetails);
                 setPreviewMode(true);
+                toast.info("Email preview generated. Review before sending.");
             } else {
+                toast.error("Could not generate an email from your instructions. Please be more specific.");
                 setError("Could not generate an email from your instructions. Please be more specific.");
             }
         } catch (err) {
             console.error("Error processing instruction:", err);
+            toast.error(err.message || "Failed to process instruction");
             setError(err.message || "Failed to process instruction");
         } finally {
             setProcessing(false);
@@ -90,7 +100,10 @@ const AIAgent = () => {
     };
 
     const handleSendEmail = async () => {
-        if (!emailDetails) return;
+        if (!emailDetails) {
+            toast.warning("No email details available");
+            return;
+        }
         
         setProcessing(true);
         setError(null);
@@ -103,7 +116,7 @@ const AIAgent = () => {
                     "Content-Type": "application/json",
                 },
                 credentials: "include",
-                body: JSON.stringify(emailDetails),
+                body: JSON.stringify({ ...emailDetails, tone: emailDetails.tone || tone }),
             });
             
             const data = await res.json();
@@ -114,9 +127,11 @@ const AIAgent = () => {
             
             setResponse(data);
             setPreviewMode(false);
+            toast.success("Email sent successfully!");
             // Keep the emailDetails to show what was sent
         } catch (err) {
             console.error("Error sending email:", err);
+            toast.error(err.message || "Failed to send email");
             setError(err.message || "Failed to send email");
         } finally {
             setProcessing(false);
@@ -135,6 +150,7 @@ const AIAgent = () => {
     const handleCancel = () => {
         setPreviewMode(false);
         setEmailDetails(null);
+        toast.info("Email preview cancelled");
     };
 
     // Function to safely render email content
@@ -156,6 +172,20 @@ const AIAgent = () => {
 
     return (
         <div className="ai-agent-container" style={{ marginTop: "30px", padding: "20px", border: "1px solid #ddd", borderRadius: "8px" }}>
+            <ToastContainer 
+                position="top-right" 
+                autoClose={3000} 
+                hideProgressBar={false} 
+                newestOnTop 
+                closeOnClick 
+                rtl={false} 
+                pauseOnFocusLoss={false} 
+                draggable 
+                pauseOnHover 
+                theme="light"
+                limit={3}
+            />
+            
             <h3>AI Email Assistant</h3>
             
             {!previewMode && !response && (
@@ -176,6 +206,23 @@ const AIAgent = () => {
                                     border: "1px solid #ccc"
                                 }}
                             />
+                        </div>
+                        
+                        <div style={{ marginBottom: "15px", display: "flex", alignItems: "center" }}>
+                            <label style={{ marginRight: "10px" }}>Email Tone:</label>
+                            <select 
+                                value={tone} 
+                                onChange={(e) => setTone(e.target.value)}
+                                style={{ 
+                                    padding: "8px", 
+                                    borderRadius: "4px",
+                                    border: "1px solid #ccc" 
+                                }}
+                            >
+                                <option value="professional">Professional</option>
+                                <option value="casual">Casual</option>
+                                <option value="friendly">Friendly</option>
+                            </select>
                         </div>
                         
                         <button
@@ -238,6 +285,24 @@ const AIAgent = () => {
                                     border: "1px solid #ddd"
                                 }}
                             />
+                        </div>
+                        
+                        <div style={{ marginBottom: "10px" }}>
+                            <label style={{ display: "block", fontWeight: "bold", marginBottom: "5px" }}>Tone:</label>
+                            <select 
+                                value={emailDetails.tone || tone} 
+                                onChange={(e) => handleEdit("tone", e.target.value)}
+                                style={{
+                                    width: "100%",
+                                    padding: "8px",
+                                    borderRadius: "4px",
+                                    border: "1px solid #ddd"
+                                }}
+                            >
+                                <option value="professional">Professional</option>
+                                <option value="casual">Casual</option>
+                                <option value="friendly">Friendly</option>
+                            </select>
                         </div>
                         
                         <div style={{ marginBottom: "15px" }}>
@@ -346,6 +411,7 @@ const AIAgent = () => {
                             setResponse(null);
                             setEmailDetails(null);
                             setInstruction("");
+                            toast.info("Ready to create a new email");
                         }}
                         style={{
                             backgroundColor: "#4285F4",
@@ -365,4 +431,4 @@ const AIAgent = () => {
     );
 };
 
-export default AIAgent; 
+export default AIAgent;

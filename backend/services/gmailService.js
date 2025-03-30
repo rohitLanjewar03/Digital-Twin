@@ -474,6 +474,26 @@ async function addEventToCalendar(user, eventDetails) {
             expiry_date: user.tokenExpiry,
         });
 
+        // Handle token refresh if needed
+        if (Date.now() > user.tokenExpiry) {
+            try {
+                const { tokens } = await auth.refreshToken(user.refreshToken);
+                auth.setCredentials(tokens);
+                
+                // Update user tokens in session (this won't persist to database)
+                user.accessToken = tokens.access_token;
+                if (tokens.refresh_token) {
+                    user.refreshToken = tokens.refresh_token;
+                }
+                user.tokenExpiry = tokens.expiry_date;
+                
+                console.log("Refreshed Google API tokens");
+            } catch (refreshError) {
+                console.error("Failed to refresh tokens:", refreshError);
+                throw new Error("Authentication expired. Please log in again.");
+            }
+        }
+
         const calendar = google.calendar({ version: "v3", auth });
         
         // Set default values for missing fields
@@ -506,6 +526,20 @@ async function addEventToCalendar(user, eventDetails) {
         const startDateTime = `${eventDate}T${startTime}:00`;
         const endDateTime = `${eventDate}T${endTime}:00`;
         
+        // Get user's timezone or default to a reasonable one
+        let userTimeZone = "Asia/Kolkata"; // Default to IST for Indian users
+        try {
+            // Try to get the user's actual timezone from Google Calendar settings
+            const settingsResponse = await calendar.settings.get({
+                setting: 'timezone'
+            });
+            if (settingsResponse.data && settingsResponse.data.value) {
+                userTimeZone = settingsResponse.data.value;
+            }
+        } catch (tzError) {
+            console.warn("Could not retrieve user timezone, using default:", tzError.message);
+        }
+        
         // Create the calendar event
         const event = {
             summary: title,
@@ -513,11 +547,11 @@ async function addEventToCalendar(user, eventDetails) {
             description: eventDetails.description || 'Event added from email',
             start: {
                 dateTime: startDateTime,
-                timeZone: 'UTC',
+                timeZone: userTimeZone,
             },
             end: {
                 dateTime: endDateTime,
-                timeZone: 'UTC',
+                timeZone: userTimeZone,
             },
             reminders: {
                 useDefault: true,
@@ -528,16 +562,27 @@ async function addEventToCalendar(user, eventDetails) {
         const response = await calendar.events.insert({
             calendarId: 'primary',
             resource: event,
+            sendUpdates: 'all', // Send notifications to attendees if any
         });
         
         console.log('Event created:', response.data);
         return response.data;
     } catch (error) {
         console.error('Error adding event to calendar:', error);
-        throw error;
+        
+        // Provide more specific error messages
+        if (error.code === 401 || error.code === 403) {
+            throw new Error("Authentication error. Please log in again.");
+        } else if (error.code === 404) {
+            throw new Error("Calendar not found. Please check your Google Calendar settings.");
+        } else if (error.code === 409) {
+            throw new Error("Calendar event conflict. Please try a different time.");
+        } else if (error.code === 400) {
+            throw new Error("Invalid event data. Please check the event details.");
+        } else {
+            throw new Error(`Calendar error: ${error.message || "Unknown error"}`);
+        }
     }
 }
 
 module.exports = { getUnseenEmails, markEmailAsRead, sendReply, getEmailById, sendEmail, addEventToCalendar };
-
-

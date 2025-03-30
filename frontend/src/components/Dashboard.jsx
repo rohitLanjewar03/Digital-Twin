@@ -2,6 +2,8 @@ import { useAuth } from "../context/useAuth";
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import AIAgent from "./AIAgent";
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const Dashboard = () => {
     const { user, loading, logout, validateSession } = useAuth();
@@ -231,7 +233,10 @@ const Dashboard = () => {
     };
 
     const handleSendReply = async () => {
-        if (!replyingTo || !replyContent) return;
+        if (!replyingTo || !replyContent) {
+            toast.warning("Please enter a reply first");
+            return;
+        }
 
         try {
             const response = await fetch(`http://localhost:5000/email/send-reply/${replyingTo}`, {
@@ -248,12 +253,12 @@ const Dashboard = () => {
             }
 
             const data = await response.json();
-            alert(data.message); // Show success message
+            toast.success(data.message || "Reply sent successfully"); // Show success toast
             setReplyingTo(null); // Close the reply form
             setReplyContent(""); // Clear the reply content
         } catch (error) {
             console.error("Error sending reply:", error);
-            alert("Failed to send reply");
+            toast.error("Failed to send reply"); // Show error toast
         }
     };
 
@@ -303,6 +308,9 @@ const Dashboard = () => {
     const handleAddToCalendar = async (emailId) => {
         setAddingEvent(true);
         try {
+            // Show initial feedback
+            toast.info("Analyzing email for event details...", { autoClose: 2000 });
+            
             const response = await fetch(`http://localhost:5000/email/add-to-calendar/${emailId}`, {
                 method: "POST",
                 credentials: "include",
@@ -311,28 +319,55 @@ const Dashboard = () => {
                 },
             });
 
-            if (!response.ok) {
-                throw new Error("Failed to add event to calendar");
-            }
-
             const data = await response.json();
             
-            if (data.success) {
-                alert(`Event added to your calendar: ${data.eventDetails.summary}`);
+            if (!response.ok) {
+                throw new Error(data.message || "Failed to add event to calendar");
+            }
+            
+            if (data.success && data.eventDetails) {
+                // Format event date and time for display
+                let eventTime = "";
+                if (data.eventDetails.start && data.eventDetails.start.dateTime) {
+                    const eventDate = new Date(data.eventDetails.start.dateTime);
+                    eventTime = eventDate.toLocaleString();
+                }
+                
+                // Show success message with event details
+                toast.success(
+                    `Event added to calendar: ${data.eventDetails.summary}`,
+                    { autoClose: 3000 }
+                );
+                
+                // Use setTimeout to avoid window.confirm blocking toast display
+                if (data.eventDetails.htmlLink) {
+                    toast.info(
+                        "You can view this event in your Google Calendar",
+                        { autoClose: 3000 }
+                    );
+                }
+                
             } else if (data.noEventFound) {
-                alert("No event details found in this email.");
+                toast.warning("No event details found in this email.", { autoClose: 3000 });
             } else {
-                alert("Something went wrong when adding the event to your calendar.");
+                toast.error("Something went wrong when adding the event to your calendar.", { autoClose: 3000 });
             }
         } catch (error) {
             console.error("Error adding event to calendar:", error);
-            alert("Error adding event to calendar: " + error.message);
+            
+            // More user-friendly error messages
+            if (error.message.includes("Authentication")) {
+                toast.error("Authentication error. Please log out and log in again.", { autoClose: 3000 });
+            } else if (error.message.includes("conflict")) {
+                toast.error("Calendar conflict detected. Please check your calendar.", { autoClose: 3000 });
+            } else {
+                toast.error("Error adding event to calendar: " + error.message, { autoClose: 3000 });
+            }
         } finally {
             setAddingEvent(false);
         }
     };
 
-    // Handler for search input changes
     const handleSearchChange = (e) => {
         setSearchQuery(e.target.value);
         
@@ -350,7 +385,6 @@ const Dashboard = () => {
         }
     };
 
-    // Handler for search submission
     const handleSearchSubmit = (e) => {
         e.preventDefault();
         if (searchQuery.trim()) {
@@ -440,6 +474,20 @@ const Dashboard = () => {
 
     return (
         <div className="dashboard-container">
+            <ToastContainer 
+                position="top-right" 
+                autoClose={3000} 
+                hideProgressBar={false} 
+                newestOnTop 
+                closeOnClick 
+                rtl={false} 
+                pauseOnFocusLoss={false} 
+                draggable 
+                pauseOnHover 
+                theme="light"
+                limit={3}
+            />
+            
             {/* Search bar */}
             <div className="search-container">
                 <form onSubmit={handleSearchSubmit}>

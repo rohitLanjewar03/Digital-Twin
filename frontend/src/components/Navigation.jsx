@@ -16,7 +16,7 @@ const Navigation = () => {
     <nav className="main-navigation">
       <div className="nav-container">
         <div className="nav-brand">
-          <Link to="/dashboard">Digital Twin</Link>
+          <Link to="/dashboard">DIGI-U</Link>
         </div>
         
         <div className="nav-links">

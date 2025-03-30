@@ -8,6 +8,7 @@ import Navigation from './components/Navigation.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 import { HistoryProvider } from './context/HistoryContext.jsx';
 import { ThemeProvider } from './context/ThemeContext.jsx';
+import LandingPage from './pages/LandingPage.jsx';
 import './styles/theme.css';
 import './App.css';
 
@@ -17,6 +18,7 @@ function App() {
       <div className="app">
         <HistoryProvider>
           <Routes>
+          <Route path="/" element={<LandingPage/>}/>
             <Route path="/login" element={<Login />} />
             <Route path="/" element={<Navigate to="/dashboard" />} />
             <Route path="/browsing-history" element={
