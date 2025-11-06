@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/useAuth';
-import { useHistory } from '../context/HistoryContext';
 import {
   BarChart, Bar, PieChart, Pie, LineChart, Line, XAxis, YAxis, CartesianGrid, 
   Tooltip, Legend, ResponsiveContainer, Cell, RadarChart, Radar, PolarGrid, 
@@ -16,7 +15,6 @@ const COLORS = [
 
 const BrowsingHistoryAnalytics = () => {
   const { user } = useAuth();
-  const { fetchHistory } = useHistory();
   const [analytics, setAnalytics] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -716,31 +714,35 @@ const BrowsingHistoryAnalytics = () => {
           </p>
           <div className="chart-container categories-container">
             <div className="categories-chart">
-              <ResponsiveContainer width="100%" height={350}>
-                <PieChart>
-                  <Pie
-                    activeIndex={activeIndex}
-                    activeShape={renderActiveShape}
-                    data={analytics.topicCategories?.topicDistributionWithIcons || []}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={70}
-                    outerRadius={120}
-                    fill="#8884d8"
-                    dataKey="percentage"
-                    onMouseEnter={onPieEnter}
-                    paddingAngle={2}
-                  >
-                    {analytics.topicCategories?.topicDistributionWithIcons?.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} stroke="#ffffff" strokeWidth={2} />
-                    )) || []}
-                  </Pie>
-                  <Tooltip 
-                    formatter={(value) => [`${value.toFixed(1)}%`, 'Percentage']}
-                    labelFormatter={(name, entry) => entry.payload.category}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
+              {analytics.topicCategories?.topicDistributionWithIcons?.length > 0 ? (
+                <ResponsiveContainer width="100%" height={350}>
+                  <PieChart>
+                    <Pie
+                      activeIndex={activeIndex}
+                      activeShape={renderActiveShape}
+                      data={analytics.topicCategories.topicDistributionWithIcons}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={70}
+                      outerRadius={120}
+                      fill="#8884d8"
+                      dataKey="percentage"
+                      onMouseEnter={onPieEnter}
+                      paddingAngle={2}
+                    >
+                      {analytics.topicCategories.topicDistributionWithIcons.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} stroke="#ffffff" strokeWidth={2} />
+                      ))}
+                    </Pie>
+                    <Tooltip 
+                      formatter={(value) => [`${value.toFixed(1)}%`, 'Percentage']}
+                      labelFormatter={entry => entry.payload.category}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="no-data">No category data available</div>
+              )}
             </div>
             <div className="categories-insights">
               <div className="category-insight-card">
@@ -843,31 +845,35 @@ const BrowsingHistoryAnalytics = () => {
             </button>
           </div>
           <div className="chart-container">
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart
-                data={analytics.domainFrequency?.topDomains || []}
-                layout="vertical"
-                margin={{ top: 20, right: 30, left: 60, bottom: 5 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis type="number" />
-                <YAxis 
-                  dataKey="domain" 
-                  type="category" 
-                  width={150}
-                  tick={{ fontSize: 12 }}
-                />
-                <Tooltip 
-                  formatter={(value, name, props) => [`${value} visits (${props.payload.percentage.toFixed(1)}%)`, 'Visits']}
-                  labelFormatter={(value) => `Domain: ${value}`}
-                />
-                <Bar dataKey="count" fill="#8884d8">
-                  {analytics.domainFrequency?.topDomains?.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  )) || []}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+            {analytics.domainFrequency?.topDomains?.length > 0 ? (
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart
+                  data={analytics.domainFrequency.topDomains}
+                  layout="vertical"
+                  margin={{ top: 20, right: 30, left: 60, bottom: 5 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis type="number" />
+                  <YAxis 
+                    dataKey="domain" 
+                    type="category" 
+                    width={150}
+                    tick={{ fontSize: 12 }}
+                  />
+                  <Tooltip 
+                    formatter={(value, _name, props) => [`${value} visits (${props.payload.percentage.toFixed(1)}%)`, 'Visits']}
+                    labelFormatter={(value) => `Domain: ${value}`}
+                  />
+                  <Bar dataKey="count" fill="#8884d8">
+                    {analytics.domainFrequency.topDomains.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="no-data">No domain data available</div>
+            )}
           </div>
         </div>
         
@@ -902,34 +908,35 @@ const BrowsingHistoryAnalytics = () => {
           </p>
           <div className="time-activity-container">
             <div className="time-chart-container">
-              <ResponsiveContainer width="100%" height={300}>
-                <LineChart
-                  data={(analytics.timeDistribution?.hourlyDistribution || []).map((count, hour) => ({
-                    hour,
-                    count
-                  }))}
-                  margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis 
-                    dataKey="hour" 
-                    tickFormatter={formatHour}
-                    ticks={[0, 3, 6, 9, 12, 15, 18, 21, 23]}
-                  />
-                  <YAxis />
-                  <Tooltip 
-                    formatter={(value) => [`${value} visits`, 'Page Views']}
-                    labelFormatter={(hour) => `Time: ${formatHour(hour)}`}
-                  />
-                  <Line 
-                    type="monotone" 
-                    dataKey="count" 
-                    stroke="#8884d8" 
-                    activeDot={{ r: 8 }}
-                    strokeWidth={2} 
-                  />
-                </LineChart>
-              </ResponsiveContainer>
+              {(analytics.timeDistribution?.hourlyDistribution?.length > 0) ? (
+                <ResponsiveContainer width="100%" height={300}>
+                  <LineChart
+                    data={analytics.timeDistribution.hourlyDistribution.map((count, hour) => ({ hour, count }))}
+                    margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis 
+                      dataKey="hour" 
+                      tickFormatter={formatHour}
+                      ticks={[0, 3, 6, 9, 12, 15, 18, 21, 23]}
+                    />
+                    <YAxis />
+                    <Tooltip 
+                      formatter={(value) => [`${value} visits`, 'Page Views']}
+                      labelFormatter={(hour) => `Time: ${formatHour(hour)}`}
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="count" 
+                      stroke="#8884d8" 
+                      activeDot={{ r: 8 }}
+                      strokeWidth={2} 
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="no-data">No time of day data available</div>
+              )}
             </div>
             <div className="time-insights">
               <div className="time-insight-card">
@@ -997,28 +1004,29 @@ const BrowsingHistoryAnalytics = () => {
           </p>
           <div className="day-activity-container">
             <div className="day-chart-container">
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart
-                  data={(analytics.timeDistribution?.dailyDistribution || []).map((count, day) => ({
-                    day,
-                    count
-                  }))}
-                  margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="day" tickFormatter={formatDay} />
-                  <YAxis />
-                  <Tooltip 
-                    formatter={(value) => [`${value} visits`, 'Page Views']}
-                    labelFormatter={(day) => `Day: ${formatDay(day)}`}
-                  />
-                  <Bar dataKey="count" fill="#82ca9d">
-                    {(analytics.timeDistribution?.dailyDistribution || []).map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={getDayColor(index)} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
+              {(analytics.timeDistribution?.dailyDistribution?.length > 0) ? (
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart
+                    data={analytics.timeDistribution.dailyDistribution.map((count, day) => ({ day, count }))}
+                    margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="day" tickFormatter={formatDay} />
+                    <YAxis />
+                    <Tooltip 
+                      formatter={(value) => [`${value} visits`, 'Page Views']}
+                      labelFormatter={(day) => `Day: ${formatDay(day)}`}
+                    />
+                    <Bar dataKey="count" fill="#82ca9d">
+                      {analytics.timeDistribution.dailyDistribution.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={getDayColor(index)} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="no-data">No weekly activity data available</div>
+              )}
             </div>
             <div className="day-insights">
               <div className="day-insight-card">
@@ -1081,28 +1089,32 @@ const BrowsingHistoryAnalytics = () => {
           </p>
           <div className="chart-container split-view">
             <div className="chart-area">
-              <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie
-                    data={analytics.contentTypes?.contentTypeDistribution || []}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    outerRadius={80}
-                    fill="#8884d8"
-                    dataKey="percentage"
-                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                  >
-                    {analytics.contentTypes?.contentTypeDistribution?.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    )) || []}
-                  </Pie>
-                  <Tooltip 
-                    formatter={(value, name, props) => [`${value.toFixed(1)}%`, 'Percentage']}
-                    labelFormatter={(name) => props.payload.type}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
+              {(analytics.contentTypes?.contentTypeDistribution?.length > 0) ? (
+                <ResponsiveContainer width="100%" height={300}>
+                  <PieChart>
+                    <Pie
+                      data={analytics.contentTypes.contentTypeDistribution}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      outerRadius={80}
+                      fill="#8884d8"
+                      dataKey="percentage"
+                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                    >
+                      {analytics.contentTypes.contentTypeDistribution.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip 
+                      formatter={(value) => [`${value.toFixed(1)}%`, 'Percentage']}
+                      labelFormatter={entry => entry.payload.type}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="no-data">No content type data available</div>
+              )}
             </div>
             <div className="content-details">
               <h3>Content Preferences</h3>
@@ -1258,24 +1270,30 @@ const BrowsingHistoryAnalytics = () => {
           <h3>Weekday vs Weekend Activity</h3>
           <div className="weekday-weekend-container">
             <div className="chart-container weekday-weekend">
-              <ResponsiveContainer width="100%" height={250}>
-                <RadarChart 
-                  cx="50%" 
-                  cy="50%" 
-                  outerRadius="80%" 
-                  data={[
-                    { subject: 'Weekday', A: analytics.behaviorPatterns?.browsingPatterns?.weekdayVsWeekend?.weekdayPercentage || 0 },
-                    { subject: 'Weekend', A: analytics.behaviorPatterns?.browsingPatterns?.weekdayVsWeekend?.weekendPercentage || 0 }
-                  ]}
-                >
-                  <PolarGrid strokeDasharray="3 3" />
-                  <PolarAngleAxis dataKey="subject" />
-                  <PolarRadiusAxis angle={30} domain={[0, 100]} />
-                  <Radar name="Usage %" dataKey="A" stroke="#8884d8" fill="#8884d8" fillOpacity={0.6} />
-                  <Tooltip formatter={(value) => `${value.toFixed(1)}%`} />
-                  <Legend />
-                </RadarChart>
-              </ResponsiveContainer>
+              {(analytics.behaviorPatterns?.browsingPatterns?.weekdayVsWeekend &&
+                (analytics.behaviorPatterns.browsingPatterns.weekdayVsWeekend.weekdayPercentage > 0 ||
+                 analytics.behaviorPatterns.browsingPatterns.weekdayVsWeekend.weekendPercentage > 0)) ? (
+                <ResponsiveContainer width="100%" height={250}>
+                  <RadarChart 
+                    cx="50%" 
+                    cy="50%" 
+                    outerRadius="80%" 
+                    data={[
+                      { subject: 'Weekday', A: analytics.behaviorPatterns.browsingPatterns.weekdayVsWeekend.weekdayPercentage || 0 },
+                      { subject: 'Weekend', A: analytics.behaviorPatterns.browsingPatterns.weekdayVsWeekend.weekendPercentage || 0 }
+                    ]}
+                  >
+                    <PolarGrid strokeDasharray="3 3" />
+                    <PolarAngleAxis dataKey="subject" />
+                    <PolarRadiusAxis angle={30} domain={[0, 100]} />
+                    <Radar name="Usage %" dataKey="A" stroke="#8884d8" fill="#8884d8" fillOpacity={0.6} />
+                    <Tooltip formatter={(value) => `${value.toFixed(1)}%`} />
+                    <Legend />
+                  </RadarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="no-data">No weekday/weekend data available</div>
+              )}
             </div>
             <div className="weekday-weekend-insights">
               <div className="weekday-card insight-card">

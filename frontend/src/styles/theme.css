@@ -33,9 +33,9 @@
 
 /* Dark theme - Gmail inspired dark mode */
 [data-theme='dark'] {
-  --bg-primary: #131314;
-  --bg-secondary: #202124;
-  --bg-tertiary: #303134;
+  --bg-primary: #18191A;
+  --bg-secondary: #18191A;
+  --bg-tertiary: #18191A;
   --text-primary: #e8eaed;
   --text-secondary: #9aa0a6;
   --border-color: #3c4043;
@@ -54,14 +54,14 @@
   --warning-color: #fdd663;
   
   /* UI elements */
-  --card-bg: #202124;
+  --card-bg: #18191A;
   --card-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.3), 0 1px 3px 1px rgba(0, 0, 0, 0.15);
   --input-bg: #303134;
   --input-border: #5f6368;
   --button-text: #e8eaed;
   --disabled-bg: #3c4043;
   --disabled-text: #9aa0a6;
-  --hover-bg: #3c4043;
+  --hover-bg: #232425;
 }
 
 /* Global styles to apply theme */

@@ -171,7 +171,7 @@ const AIAgent = () => {
     };
 
     return (
-        <div className="ai-agent-container" style={{ marginTop: "30px", padding: "20px", border: "1px solid #ddd", borderRadius: "8px" }}>
+        <div className="ai-agent-container" style={{ marginTop: "30px", padding: "20px", border: "1px solid var(--border-color)", borderRadius: "8px", background: "var(--card-bg)" }}>
             <ToastContainer 
                 position="top-right" 
                 autoClose={3000} 
@@ -203,20 +203,24 @@ const AIAgent = () => {
                                     minHeight: "100px", 
                                     padding: "10px",
                                     borderRadius: "4px",
-                                    border: "1px solid #ccc"
+                                    border: "1px solid var(--input-border)",
+                                    background: "var(--input-bg)",
+                                    color: "var(--text-primary)"
                                 }}
                             />
                         </div>
                         
                         <div style={{ marginBottom: "15px", display: "flex", alignItems: "center" }}>
-                            <label style={{ marginRight: "10px" }}>Email Tone:</label>
+                            <label style={{ marginRight: "10px", color: "var(--text-primary)" }}>Email Tone:</label>
                             <select 
                                 value={tone} 
                                 onChange={(e) => setTone(e.target.value)}
                                 style={{ 
                                     padding: "8px", 
                                     borderRadius: "4px",
-                                    border: "1px solid #ccc" 
+                                    border: "1px solid var(--input-border)",
+                                    background: "var(--input-bg)",
+                                    color: "var(--text-primary)"
                                 }}
                             >
                                 <option value="professional">Professional</option>
@@ -229,8 +233,8 @@ const AIAgent = () => {
                             type="submit"
                             disabled={processing}
                             style={{
-                                backgroundColor: "#4285F4",
-                                color: "white",
+                                backgroundColor: "var(--accent-color)",
+                                color: "var(--button-text)",
                                 padding: "10px 15px",
                                 border: "none",
                                 borderRadius: "4px",
@@ -252,13 +256,13 @@ const AIAgent = () => {
                     <div style={{ 
                         marginTop: "15px",
                         marginBottom: "20px",
-                        backgroundColor: "#fff",
-                        border: "1px solid #ddd",
+                        backgroundColor: "var(--card-bg)",
+                        border: "1px solid var(--border-color)",
                         borderRadius: "4px",
                         padding: "15px"
                     }}>
                         <div style={{ marginBottom: "10px" }}>
-                            <label style={{ display: "block", fontWeight: "bold", marginBottom: "5px" }}>To:</label>
+                            <label style={{ display: "block", fontWeight: "bold", marginBottom: "5px", color: "var(--text-primary)" }}>To:</label>
                             <input 
                                 type="text" 
                                 value={emailDetails.to || ""} 
@@ -267,13 +271,15 @@ const AIAgent = () => {
                                     width: "100%",
                                     padding: "8px",
                                     borderRadius: "4px",
-                                    border: "1px solid #ddd"
+                                    border: "1px solid var(--input-border)",
+                                    background: "var(--input-bg)",
+                                    color: "var(--text-primary)"
                                 }}
                             />
                         </div>
                         
                         <div style={{ marginBottom: "10px" }}>
-                            <label style={{ display: "block", fontWeight: "bold", marginBottom: "5px" }}>Subject:</label>
+                            <label style={{ display: "block", fontWeight: "bold", marginBottom: "5px", color: "var(--text-primary)" }}>Subject:</label>
                             <input 
                                 type="text" 
                                 value={emailDetails.subject || ""} 
@@ -282,13 +288,15 @@ const AIAgent = () => {
                                     width: "100%",
                                     padding: "8px",
                                     borderRadius: "4px",
-                                    border: "1px solid #ddd"
+                                    border: "1px solid var(--input-border)",
+                                    background: "var(--input-bg)",
+                                    color: "var(--text-primary)"
                                 }}
                             />
                         </div>
                         
                         <div style={{ marginBottom: "10px" }}>
-                            <label style={{ display: "block", fontWeight: "bold", marginBottom: "5px" }}>Tone:</label>
+                            <label style={{ display: "block", fontWeight: "bold", marginBottom: "5px", color: "var(--text-primary)" }}>Tone:</label>
                             <select 
                                 value={emailDetails.tone || tone} 
                                 onChange={(e) => handleEdit("tone", e.target.value)}
@@ -296,7 +304,9 @@ const AIAgent = () => {
                                     width: "100%",
                                     padding: "8px",
                                     borderRadius: "4px",
-                                    border: "1px solid #ddd"
+                                    border: "1px solid var(--input-border)",
+                                    background: "var(--input-bg)",
+                                    color: "var(--text-primary)"
                                 }}
                             >
                                 <option value="professional">Professional</option>
@@ -306,7 +316,7 @@ const AIAgent = () => {
                         </div>
                         
                         <div style={{ marginBottom: "15px" }}>
-                            <label style={{ display: "block", fontWeight: "bold", marginBottom: "5px" }}>Content:</label>
+                            <label style={{ display: "block", fontWeight: "bold", marginBottom: "5px", color: "var(--text-primary)" }}>Content:</label>
                             <textarea 
                                 value={emailDetails.content || ""} 
                                 onChange={(e) => handleEdit("content", e.target.value)}
@@ -315,7 +325,9 @@ const AIAgent = () => {
                                     minHeight: "200px",
                                     padding: "8px",
                                     borderRadius: "4px",
-                                    border: "1px solid #ddd",
+                                    border: "1px solid var(--input-border)",
+                                    background: "var(--input-bg)",
+                                    color: "var(--text-primary)",
                                     fontFamily: "Arial, sans-serif",
                                     lineHeight: "1.5",
                                 }}
@@ -326,10 +338,10 @@ const AIAgent = () => {
                             <button
                                 onClick={handleCancel}
                                 style={{
-                                    backgroundColor: "#f5f5f5",
-                                    color: "#333",
+                                    backgroundColor: "var(--hover-bg)",
+                                    color: "var(--text-primary)",
                                     padding: "8px 15px",
-                                    border: "1px solid #ddd",
+                                    border: "1px solid var(--border-color)",
                                     borderRadius: "4px",
                                     cursor: "pointer"
                                 }}
@@ -341,8 +353,8 @@ const AIAgent = () => {
                                 onClick={handleSendEmail}
                                 disabled={processing}
                                 style={{
-                                    backgroundColor: "#4CAF50",
-                                    color: "white",
+                                    backgroundColor: "var(--accent-secondary)",
+                                    color: "var(--button-text)",
                                     padding: "8px 15px",
                                     border: "none",
                                     borderRadius: "4px",
@@ -361,8 +373,8 @@ const AIAgent = () => {
                 <div style={{ 
                     marginTop: "15px", 
                     padding: "10px", 
-                    backgroundColor: "#FFEBEE", 
-                    color: "#D32F2F",
+                    backgroundColor: "var(--error-color)", 
+                    color: "#fff",
                     borderRadius: "4px" 
                 }}>
                     {error}
@@ -373,7 +385,7 @@ const AIAgent = () => {
                 <div style={{ 
                     marginTop: "15px", 
                     padding: "15px", 
-                    backgroundColor: "#E8F5E9", 
+                    backgroundColor: "var(--success-color)", 
                     borderRadius: "4px" 
                 }}>
                     <h4>Email Sent Successfully!</h4>
@@ -381,8 +393,8 @@ const AIAgent = () => {
                     
                     <div style={{ 
                         marginTop: "15px",
-                        backgroundColor: "#fff",
-                        border: "1px solid #ddd",
+                        backgroundColor: "var(--card-bg)",
+                        border: "1px solid var(--border-color)",
                         borderRadius: "4px",
                         padding: "15px"
                     }}>
@@ -391,10 +403,10 @@ const AIAgent = () => {
                         <p><strong>Subject:</strong> {emailDetails?.subject || response.subject || "N/A"}</p>
                         <p style={{ marginBottom: "5px" }}><strong>Content:</strong></p>
                         <div style={{ 
-                            backgroundColor: "#f8f9fa", 
+                            backgroundColor: "var(--bg-secondary)", 
                             padding: "10px",
                             borderRadius: "4px",
-                            border: "1px solid #e9ecef",
+                            border: "1px solid var(--border-color)",
                             whiteSpace: "pre-wrap",
                             fontFamily: "Arial, sans-serif",
                             fontSize: "0.9rem",
@@ -414,8 +426,8 @@ const AIAgent = () => {
                             toast.info("Ready to create a new email");
                         }}
                         style={{
-                            backgroundColor: "#4285F4",
-                            color: "white", 
+                            backgroundColor: "var(--accent-color)",
+                            color: "var(--button-text)", 
                             padding: "8px 15px",
                             border: "none",
                             borderRadius: "4px",

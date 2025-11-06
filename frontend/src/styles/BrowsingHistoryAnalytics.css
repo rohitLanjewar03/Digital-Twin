@@ -1497,3 +1497,38 @@
 .browsing-history-analytics-page .analytics-summary.hidden {
   display: none;
 }
+
+.analytics-container {
+  background: var(--card-bg);
+  color: var(--text-primary);
+  border-radius: 12px;
+  box-shadow: var(--card-shadow);
+  padding: 32px 40px;
+  margin: 32px auto;
+  max-width: 900px;
+}
+
+.analytics-list {
+  margin-top: 24px;
+  border-radius: 8px;
+  overflow-y: auto;
+  max-height: 60vh;
+  scrollbar-width: thin;
+  scrollbar-color: var(--accent-color) var(--bg-primary);
+}
+.analytics-list::-webkit-scrollbar {
+  width: 10px;
+  background: var(--bg-primary);
+}
+.analytics-list::-webkit-scrollbar-thumb {
+  background: var(--accent-color);
+  border-radius: 8px;
+  border: 2px solid var(--bg-primary);
+}
+.analytics-list::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-hover);
+}
+.analytics-list::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+  border-radius: 8px;
+}

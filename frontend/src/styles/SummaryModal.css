@@ -13,17 +13,19 @@
 }
 
 .summary-modal {
-  background-color: var(--card-bg);
-  border-radius: 12px;
-  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.25);
+  background: var(--card-bg);
+  color: var(--text-primary);
+  border-radius: 16px;
+  box-shadow: var(--card-shadow);
+  padding: 32px 40px;
+  max-width: 600px;
+  margin: 40px auto;
   width: 90%;
-  max-width: 650px;
   max-height: 85vh;
   display: flex;
   flex-direction: column;
   animation: modal-fade-in 0.25s ease-out;
   border: 1px solid var(--border-color);
-  color: var(--text-primary);
   overflow: hidden;
 }
 
@@ -86,6 +88,12 @@
 }
 
 .summary-content {
+  margin-top: 24px;
+  border-radius: 8px;
+  overflow-y: auto;
+  max-height: 40vh;
+  scrollbar-width: thin;
+  scrollbar-color: var(--accent-color) var(--bg-primary);
   font-size: 1.05rem;
   line-height: 1.7;
   white-space: pre-line;
@@ -98,6 +106,26 @@
 
 .summary-content p:last-child {
   margin-bottom: 0;
+}
+
+.summary-content::-webkit-scrollbar {
+  width: 10px;
+  background: var(--bg-primary);
+}
+
+.summary-content::-webkit-scrollbar-thumb {
+  background: var(--accent-color);
+  border-radius: 8px;
+  border: 2px solid var(--bg-primary);
+}
+
+.summary-content::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-hover);
+}
+
+.summary-content::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+  border-radius: 8px;
 }
 
 .modal-footer {

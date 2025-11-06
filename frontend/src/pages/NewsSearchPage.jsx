@@ -2,19 +2,16 @@ import { useState, useEffect, useRef } from 'react';
 import '../styles/NewsSearchPage.css';
 import defaultNewsImage from '../assets/default-news.js';
 import SummaryModal from '../components/SummaryModal';
+import { useQuery, useMutation } from '@tanstack/react-query';
 
 const NewsSearchPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [newsResults, setNewsResults] = useState([]);
   const [searching, setSearching] = useState(false);
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [searchStartTime, setSearchStartTime] = useState(null);
   const [lastUpdated, setLastUpdated] = useState(null);
-  const [recommendations, setRecommendations] = useState(null);
-  const [loadingRecommendations, setLoadingRecommendations] = useState(false);
-  const [recommendationError, setRecommendationError] = useState(null);
   // New states for article summarization
   const [summaries, setSummaries] = useState({});
   const [loadingSummary, setLoadingSummary] = useState({});
@@ -35,46 +32,31 @@ const NewsSearchPage = () => {
   // Ref to track if component is mounted
   const isMounted = useRef(true);
   
-  // Fetch personalized recommendations on component mount
-  useEffect(() => {
-    fetchRecommendations();
-    
-    return () => {
-      isMounted.current = false;
-    };
-  }, []);
-  
-  // Fetch personalized news recommendations based on browsing history
-  const fetchRecommendations = async () => {
-    setLoadingRecommendations(true);
-    setRecommendationError(null);
-    
-    try {
-      const response = await fetch('http://localhost:5000/news/recommended', {
-        method: 'GET',
-        credentials: 'include'
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Error: ${response.status} ${response.statusText}`);
-      }
-      
-      const data = await response.json();
-      
-      if (isMounted.current) {
-        setRecommendations(data);
-      }
-    } catch (err) {
-      console.error('Error fetching recommendations:', err);
-      if (isMounted.current) {
-        setRecommendationError(`Failed to load recommendations: ${err.message}`);
-      }
-    } finally {
-      if (isMounted.current) {
-        setLoadingRecommendations(false);
-      }
+  // React Query: Recommendations
+  const {
+    data: recommendations,
+    isLoading: loadingRecommendations,
+    error: recommendationError,
+    refetch: refetchRecommendations
+  } = useQuery({
+    queryKey: ['news-recommendations'],
+    queryFn: fetchRecommendations
+  });
+
+  // React Query: News Search
+  const {
+    mutate: triggerSearch,
+    data: newsData,
+    isLoading: isLoadingNews,
+    error: newsError
+  } = useMutation({
+    mutationFn: searchNews,
+    onSuccess: (data) => {
+      setLastUpdated(new Date());
     }
-  };
+  });
+
+  const newsResults = newsData?.articles || [];
   
   useEffect(() => {
     let interval;
@@ -122,61 +104,24 @@ const NewsSearchPage = () => {
   };
   
   // Handle search form submission
-  const handleSearch = async (e) => {
+  const handleSearch = (e) => {
     if (e) e.preventDefault();
-    
-    if (!searchQuery.trim()) {
-      setError('Please enter a search topic');
-      return;
-    }
-    
-    setIsLoading(true);
-    setError(null);
-    setSearching(true);
+    if (!searchQuery.trim()) return;
     addToRecentSearches(searchQuery);
-    
-    try {
-      const response = await fetch('http://localhost:5000/news/search', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ query: searchQuery }),
-        credentials: 'include'
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Error: ${response.status} ${response.statusText}`);
-      }
-      
-      const data = await response.json();
-      
-      if (data.articles && Array.isArray(data.articles)) {
-        setNewsResults(data.articles);
-        setLastUpdated(new Date());
-      } else {
-        throw new Error('Invalid response format or no articles found');
-      }
-    } catch (err) {
-      console.error('Error fetching news:', err);
-      setError(`Failed to fetch news: ${err.message}`);
-    } finally {
-      setIsLoading(false);
-    }
+    triggerSearch(searchQuery);
   };
   
   const handleRecentSearchClick = (query) => {
     setSearchQuery(query);
-    // Use setTimeout to ensure state update before search
     setTimeout(() => {
-      handleSearch();
+      triggerSearch(query);
     }, 0);
   };
   
   const handleSuggestedTopicClick = (topic) => {
     setSearchQuery(topic);
     setTimeout(() => {
-      handleSearch();
+      triggerSearch(topic);
     }, 0);
   };
   
@@ -184,7 +129,7 @@ const NewsSearchPage = () => {
   const handleRecommendationClick = (topic) => {
     setSearchQuery(topic);
     setTimeout(() => {
-      handleSearch();
+      triggerSearch(topic);
     }, 0);
   };
 
@@ -367,7 +312,7 @@ const NewsSearchPage = () => {
       return (
         <div className="recommendations-error">
           <p>{recommendationError}</p>
-          <button onClick={fetchRecommendations} className="retry-button">
+          <button onClick={refetchRecommendations} className="retry-button">
             Retry
           </button>
         </div>
@@ -564,11 +509,6 @@ const NewsSearchPage = () => {
               <span className="filter-label">Date:</span>
               <button 
                 className="filter-btn"
-                onClick={() => setNewsResults(prev => 
-                  [...prev].sort((a, b) => 
-                    new Date(b.publishedDate || 0) - new Date(a.publishedDate || 0)
-                  )
-                )}
               >
                 Newest First
               </button>
@@ -643,6 +583,32 @@ const NewsSearchPage = () => {
       )}
     </div>
   );
+};
+
+// Fetch recommendations
+const fetchRecommendations = async () => {
+  const response = await fetch('http://localhost:5000/news/recommended', {
+    method: 'GET',
+    credentials: 'include'
+  });
+  if (!response.ok) {
+    throw new Error(`Error: ${response.status} ${response.statusText}`);
+  }
+  return response.json();
+};
+
+// Search news
+const searchNews = async (query) => {
+  const response = await fetch('http://localhost:5000/news/search', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ query }),
+    credentials: 'include'
+  });
+  if (!response.ok) {
+    throw new Error(`Error: ${response.status} ${response.statusText}`);
+  }
+  return response.json();
 };
 
 export default NewsSearchPage;

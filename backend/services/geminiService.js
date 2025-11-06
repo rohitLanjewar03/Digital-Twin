@@ -1,7 +1,9 @@
 require('dotenv').config();
 const { GoogleGenerativeAI } = require("@google/generative-ai");
+const OpenAI = require('openai');
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 // Function to summarize email content
 async function summarizeEmail(content) {
@@ -10,22 +12,43 @@ async function summarizeEmail(content) {
             return "No email content to summarize.";
         }
         
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash"});
-        const prompt = `Summarize the following email content in 2-3 sentences. Focus on the key request or information being conveyed:
-        
-        ${content}`;
-        
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        return response.text();
+        try {
+            // Try Gemini first
+            const model = genAI.getGenerativeModel({ 
+                model: "gemini-2.0-flash-exp"
+            });
+            const prompt = `Summarize the following email content in 2-3 sentences. Focus on the key request or information being conveyed:
+            
+            ${content}`;
+            
+            const result = await model.generateContent(prompt);
+            const response = await result.response;
+            return response.text();
+        } catch (geminiError) {
+            // If Gemini fails with rate limit, fall back to OpenAI
+            if (geminiError.status === 429) {
+                console.log("Gemini quota exceeded, falling back to OpenAI");
+                const completion = await openai.chat.completions.create({
+                    model: "gpt-3.5-turbo",
+                    messages: [
+                        { role: "system", content: "You are a helpful assistant that summarizes emails concisely." },
+                        { role: "user", content: `Summarize the following email in 2-3 sentences: ${content}` }
+                    ],
+                    max_tokens: 150,
+                    temperature: 0.7
+                });
+                return completion.choices[0].message.content;
+            }
+            throw geminiError;
+        }
     } catch (error) {
         console.error("Error in summarizeEmail:", error);
         // For quota errors, return a generic summary instead of throwing
         if (error.status === 429) {
             return "Email content summary unavailable (API quota exceeded). Please check the email directly.";
         }
-        // For other errors, throw to be handled by caller
-        throw error;
+        // For other errors, return a fallback message
+        return "Unable to generate summary at this time.";
     }
 }
 
@@ -36,7 +59,9 @@ async function generateReply(content, tone = "professional", userName) {
             return `I received your email, but couldn't parse the content properly. Please let me know how I can assist you.\n\nBest regards,\n${userName}`;
         }
         
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        const model = genAI.getGenerativeModel({ 
+            model: "gemini-2.0-flash-exp"
+        });
 
         // Enhanced prompt with clear instructions for natural email replies
         const prompt = `
@@ -101,7 +126,9 @@ async function generateReply(content, tone = "professional", userName) {
 // Function to extract event details from email content
 async function extractEventDetails(content, subject = "") {
     try {
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        const model = genAI.getGenerativeModel({ 
+            model: "gemini-2.0-flash-exp"
+        });
         
         const prompt = `
         Extract event details from the following email content. If there's an event mentioned, provide details in the following JSON format:
